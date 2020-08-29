@@ -1,0 +1,14 @@
+{
+  "name": "posterlens",
+  "version": "1.0.0",
+  "description": "PANCOBIAN   ===",
+  "main": "posterlens.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "panolens": "^0.11.0"
+  }
+}
