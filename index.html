@@ -3,37 +3,14 @@
         <script src="node_modules/three/build/three.min.js"></script>
         <!-- <script src="node_modules/panolens/build/panolens.js"></script> -->
         <script src="panolens/panolens.js"></script>
-        <script src="node_modules/three-css2drender/CSS2DRenderer.js"></script>
+        <!-- <script src="node_modules/three-css2drender/CSS2DRenderer.js"></script> -->
+        <!-- <script src="panolens/css3drenderer.js"></script> -->
+        <script src="panolens/dragcontrols.js"></script>
         <!-- TODO: CSS2 is a module, and it shouldnt. I had to modify it by hand -->
         <script src="posterlens.js"></script>
     </head>
-    <style>
-        html, body {
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            margin: 0;
-        }
-        .modal {
-            transition: opacity 0.5s linear;
-            display: none;
-            opacity: 0;
-            width: 100%;
-            height: 100%;
-            position: absolute;
-            top: 0;
-            background:rgba(0,0,0,0.5);
-        }
-        .modal.open {
-            opacity: 1;
-            display: block;
-        }
-        .modal iframe {
-            width: 100%;
-            max-width: 2000px;
-            height: 100%;
-        }
-    </style>
+    <link rel='stylesheet' id='posterlens-css'  href='posterlens.css?ver=5.5' type='text/css' media='all' />
+
     <body>
         <div class='wrapper' style="max-width:1200px">
 
@@ -44,26 +21,32 @@
         </div>
         <script>
 
-            const pl = document.querySelector('#posterlens-container').posterlens({ 
+            const pl = document.querySelector('#posterlens-container').posterlens(
+                { 
                 initialLookAt: [4988.74, -208.76, -58.29],
                 worlds: [
                     {
                         panorama: 'assets/temple-v4-360.jpg',
                         name: 'Hall',
+                        innerPanorama: {
+                            image: 'assets/360pano.jpg',
+                            alpha: 'assets/360pano-alpha.jpg',
+                            offset: [100, 0, 0]
+                        },
                         
                         hotspots: [
                             {   //
                                 type: 'link',
-                                pos: [0, 500, -4000],
+                                pos: [0, 200, -200],
                                 image: PANOLENS.DataImage.WhiteTile,
-                                scale: 500,
+                                scale: 50,
                                 name: 'grid',
                                 link: 'World_1'
                             },   
                             {   //
                                 type: 'link',
-                                pos: [0, 500, 4000],
-                                scale: 550,
+                                pos: [0, 100, 200],
+                                scale: 50,
                                 image: PANOLENS.DataImage.Setting,
                                 name: 'front-setting-wheel-plus4000',
                                 link: 'World_1'
@@ -71,37 +54,38 @@
                             {  //
                                 type: 'link',
                                 image: 'https://images-na.ssl-images-amazon.com/images/I/91nELBuo3kL._RI_SX200_.jpg',
-                                pos: [489.01, 102.91, -0.40],
-                                scale: 100,
+                                pos: [100, 102.91, -0.40],
+                                scale: 10,
                                 name: 'link-with-posterwith-image',
                                 link: 'World_1',
                             },
-                            {  //
+                            {  // infospot
                                 type: 'poster-sprite',
                                 image: 'https://upload.wikimedia.org/wikipedia/commons/9/9c/Shane_%281953_poster%29.jpg',
-                                pos: [-5000.00, 11.34, 0],
-                                scale: 1500,
-                                name: 'just-a-poster',
-                                hoverText: 'Wonder Woman!',
+                                pos: [206.45, 119.495, 71.925],
+                                scale: 50,
+                                name: 'shane',
+                                hoverText: 'Wonder Woman! \n  AAnd mooore',
                                 onClick: (e, ht) => alert('clicked!: ' + ht.name)
                             },
-                            {  // created with a pivot parent
+                            {  // created with a pivot parent. mesh
                                 type: 'poster3d',
                                 image: 'assets/png.png', //'https://i.picsum.photos/id/702/1000/1000.jpg?hmac=39vr8Gc20f0R2GW_INGFlB1JiTDdcC632sjrJVtuPiU',
-                                pos: [-4500, -1000.02, 0 ],
-                                scale: 80,
-                                name: 'left-jing-jiang',
+                                pos: [100, 50.02, -100 ],
+                                alpha: 'assets/alpha-leaf.jpg',
+                                scale: 10,
+                                name: 'poster 3dd',
                                 hoverText: 'Poster 3D!',
                                 onHoverEnter: (e, ht) => glowAnimation( ht ),
                                 onHoverLeave: (e, ht) => stopGlowAnimation( ht ),
                                 onClick: (e, ht) => alert('clicked!: ' + ht.name)
                             },
                             {   // created with a pivot parent
-                                type: 'text',
+                                type: 'text-3d',
                                 text: '+Because neightbour matters !! ',
-                                pos: [472.75, 142.16, 65.65],
+                                pos: [72.75, 142.16, 65.65],
                                 scale: 0.1,
-                                size: 300,
+                                size: 200,
                                 name: 'bigtext',
                                 callback: (ht) => glowAnimation( ht, 2000 ),
                                 onClick: (e, ht) => alert('clicked!: ' + ht.name)
@@ -109,8 +93,8 @@
                             {   // created with a pivot parent
                                 type: 'text-2d',
                                 text: 'Because \n neightbour matters',
-                                pos: [4000, -500, 0],
-                                //scale: 20,                                
+                                pos: [400, 100, 0],
+                                scale: 0.22,                                
                                 name: 'right-text-2d',
                                 onClick: (e, ht) => alert('clicked!: ' + ht.name)
                             }
@@ -128,10 +112,14 @@
                         ]
                     }
                 ]
-            });
+            }
+            );
+
+            // DEBUG
             setTimeout(() => {
                 window.scene = pl.viewer.getScene();
             }, 500);
+            applyEditMode(pl);
         </script>
     </body>
 
