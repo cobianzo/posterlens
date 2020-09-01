@@ -1,8 +1,10 @@
 <html>
     <head>
         <script src="node_modules/three/build/three.min.js"></script>
-        <script src="node_modules/panolens/build/panolens.min.js"></script>
-        
+        <!-- <script src="node_modules/panolens/build/panolens.js"></script> -->
+        <script src="panolens/panolens.js"></script>
+        <script src="node_modules/three-css2drender/CSS2DRenderer.js"></script>
+        <!-- TODO: CSS2 is a module, and it shouldnt. I had to modify it by hand -->
         <script src="posterlens.js"></script>
     </head>
     <style>
@@ -12,29 +14,110 @@
             overflow: hidden;
             margin: 0;
         }
+        .modal {
+            transition: opacity 0.5s linear;
+            display: none;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            background:rgba(0,0,0,0.5);
+        }
+        .modal.open {
+            opacity: 1;
+            display: block;
+        }
+        .modal iframe {
+            width: 100%;
+            max-width: 2000px;
+            height: 100%;
+        }
     </style>
     <body>
+        <div class='wrapper' style="max-width:1200px">
 
-		<div id="posterlens-container" style="width:100%; height:100%"></div>
+            <div id="posterlens-container" style="width:100%; height:100%"></div>
+            <div class="modal" >
+                <iframe src="https://interreg.eu/wp-content/uploads/2020/05/CoopMDD_2020.05.27.pdf"></iframe>
+            </div>
+        </div>
         <script>
 
             const pl = document.querySelector('#posterlens-container').posterlens({ 
-                scenes: [
+                initialLookAt: [4988.74, -208.76, -58.29],
+                worlds: [
                     {
-                        panorama: 'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/2294472375_24a3b8ef46_o.jpg',
+                        panorama: 'assets/temple-v4-360.jpg',
                         name: 'Hall',
+                        
                         hotspots: [
-                            {
+                            {   //
+                                type: 'link',
+                                pos: [0, 500, -4000],
+                                image: PANOLENS.DataImage.WhiteTile,
+                                scale: 500,
+                                name: 'grid',
+                                link: 'World_1'
+                            },   
+                            {   //
+                                type: 'link',
+                                pos: [0, 500, 4000],
+                                scale: 550,
+                                image: PANOLENS.DataImage.Setting,
+                                name: 'front-setting-wheel-plus4000',
+                                link: 'World_1'
+                            },                         
+                            {  //
+                                type: 'link',
                                 image: 'https://images-na.ssl-images-amazon.com/images/I/91nELBuo3kL._RI_SX200_.jpg',
-                                pos: [-5000.00, 311.34, -3086.92],
+                                pos: [489.01, 102.91, -0.40],
+                                scale: 100,
+                                name: 'link-with-posterwith-image',
+                                link: 'World_1',
+                            },
+                            {  //
+                                type: 'poster-sprite',
+                                image: 'https://upload.wikimedia.org/wikipedia/commons/9/9c/Shane_%281953_poster%29.jpg',
+                                pos: [-5000.00, 11.34, 0],
                                 scale: 1500,
-                                name: 'link-to-scene-1',
-                                link: 'Scene_1'
+                                name: 'just-a-poster',
+                                hoverText: 'Wonder Woman!',
+                                onClick: (e, ht) => alert('clicked!: ' + ht.name)
+                            },
+                            {  // created with a pivot parent
+                                type: 'poster3d',
+                                image: 'assets/png.png', //'https://i.picsum.photos/id/702/1000/1000.jpg?hmac=39vr8Gc20f0R2GW_INGFlB1JiTDdcC632sjrJVtuPiU',
+                                pos: [-4500, -1000.02, 0 ],
+                                scale: 80,
+                                name: 'left-jing-jiang',
+                                hoverText: 'Poster 3D!',
+                                onHoverEnter: (e, ht) => glowAnimation( ht ),
+                                onHoverLeave: (e, ht) => stopGlowAnimation( ht ),
+                                onClick: (e, ht) => alert('clicked!: ' + ht.name)
+                            },
+                            {   // created with a pivot parent
+                                type: 'text',
+                                text: '+Because neightbour matters !! ',
+                                pos: [472.75, 142.16, 65.65],
+                                scale: 0.1,
+                                size: 300,
+                                name: 'bigtext',
+                                callback: (ht) => glowAnimation( ht, 2000 ),
+                                onClick: (e, ht) => alert('clicked!: ' + ht.name)
+                            },
+                            {   // created with a pivot parent
+                                type: 'text-2d',
+                                text: 'Because \n neightbour matters',
+                                pos: [4000, -500, 0],
+                                //scale: 20,                                
+                                name: 'right-text-2d',
+                                onClick: (e, ht) => alert('clicked!: ' + ht.name)
                             }
                         ]
                     },
                     {
-                        panorama: 'https://pchen66.github.io/Panolens/examples/asset/textures/equirectangular/field.jpg',
+                        panorama: 'assets/hall-v3-360.jpg',
                         hotspots: [
                             {
                               //  image: 'https://images-na.ssl-images-amazon.com/images/I/91nELBuo3kL._RI_SX200_.jpg',

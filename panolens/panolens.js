@@ -1,3 +1,4 @@
+// Este es el bueno, el de npm no estaba actualizado! 
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('three')) :
 	typeof define === 'function' && define.amd ? define(['exports', 'three'], factory) :

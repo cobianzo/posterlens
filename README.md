@@ -1,21 +1,21 @@
-POSTERLENS  
+# POSTERLENS  
 ===     
 
 Wrapper plugin over Panolens (which works over three.js).  
 Allows you to create a panorama with interactive posters.  
 Can be extended to create more complex objects and behaviours.  
 
-Install
+## Install
 ===
 npm install
 
-Dependencies:
+## Dependencies:
 ===
 `        <script src="node_modules/three/build/three.min.js"></script>`  
 `       <script src="node_modules/panolens/build/panolens.min.js"></script>`  
 
 
-Usage:  
+## Usage:  
 ```
         <div id="posterlens-container" style="width:100%; height:100%"></div>
         <script>
