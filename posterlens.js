@@ -2,6 +2,13 @@
  * Posterlens
  * Version 1.0
  * https://www.cobianzo.com/
+ * 
+ * Depends on: THREE.js, PANOLENS.js
+ * 
+ * TODO:
+ *      Check options of panolens, like showing an object on hover, and apply here
+ *      Remove the 'link' type: it can be created by poster-sprite.
+ *      Create the edit mode with buttons, with option to create any object.
  */
 ;(function(quindow) {
     
@@ -15,10 +22,7 @@
         // 1.0 - setup, init and public methods and properties.
         console.log('Posterlens init', el);
         self.o = {
-            
-            callbackMouseOver: null,
-            callbackMouseOut: null,
-            callbackClick: null
+            // default ones @TODO
         };
         
         // construct init
@@ -29,6 +33,7 @@
         // <instance>.viewer.panorama : get the current panorama (it has attribute 'active' = true)
 
         self.init = function(options) {
+            
             self.o = Object.assign(self.o, options);
             
             // PANOLENS call!
@@ -133,7 +138,6 @@
                 const infoSpot = pano.children[pano.children.length-1];
                 updateObjectParams(infoSpot, params);
                 // arrowInfospot.name = attrs.name? attrs.name : '';
-                infoSpot.name = params.name? params.name : image.substring(image.lastIndexOf('/')+1); // i dont know how to set a name to it!
                 if (params.hoverText) { // doesnt work in a link
                     infoSpot.addHoverText(params.hoverText);
                 }
@@ -141,7 +145,7 @@
         }
         self.createPosterSprite = function(pan, image = null, position, link = null, attrs = {} ) {
             const params = Object.assign( {
-                scale: 2000
+                scale: 10
             }, attrs );
             var posterInfospot = new PANOLENS.Infospot(params.scale, image);
             posterInfospot.name = image? image.substring(image.lastIndexOf('/')+1) : 'no_name';
@@ -178,7 +182,7 @@
         
         self.createPoster3D = function(panorama, image, position, attrs = {} ) {
             const params = Object.assign( {
-                scale: 50
+                scale: 10
             }, attrs );
 
             const loader = new THREE.TextureLoader();
@@ -336,12 +340,51 @@
 
 
         // called with var modal = new self.Modal('the title', 'https://the/pdf.pdf');
-        self.Modal = function(title, pdf){
-
-            this.title = title;
-            this.pdf = pdf;
-
-            return this;
+        self.Modal = function(titleText = 'TITLE', domEl = 'test', ops = {}){
+            const options = Object.assign({
+                onClose : () => { console.log('modal closed');}
+            }, ops);
+            //this.pdf = pdf;
+            if (typeof domEl === 'string') {
+                var domElement = document.createElement('div');
+                domElement.innerHTML = domEl;
+            } else domElement = domEl;  
+            var wrapper = document.createElement('div');
+            wrapper.classList.add('pl_modal-wrapper');
+            var modal = document.createElement('div');
+            modal.classList.add('pl_modal-inner');
+            var title = document.createElement('div');
+            title.classList.add('pl_modal-title');
+            var body = document.createElement('div');
+            body.classList.add('pl_modal-body');
+            var close = document.createElement('button');
+            close.textContent = 'Close';
+            close.classList.add('pl_modal-close');
+            wrapper.appendChild(modal);
+            title.innerHTML = `<h1>${titleText}</h1>`;
+            title.appendChild(close);
+            modal.appendChild(title);
+            modal.appendChild(body);
+            body.appendChild(domElement);
+            if (document.querySelector('.pl_modal-wrapper')) 
+                document.querySelector('.pl_modal-wrapper').remove();
+            pl.el.after(wrapper);
+            
+            this.modal = {}; // <instance Posterlens>.modal
+            this.modal.el = modal; // `this` is the instance of Panolens
+            this.modal.closeModalFn = (e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                const closeTween = new TWEEN.Tween( wrapper.style ).to( { opacity: 0 }, 200 ).onComplete(()=>{
+                    wrapper.style.display = 'none';
+                    options.onClose();
+                }).start();
+            }
+            close.addEventListener('click', this.modal.closeModalFn );
+            wrapper.addEventListener('click', this.modal.closeModalFn );
+            modal.addEventListener('click', e => e.stopPropagation() );
+            
+            return this.modal;
 
         }
 
@@ -349,9 +392,8 @@
         // helper to common create object/poster
         const updateObjectParams = function(object, params) {
             object.type = 'pl_' + params.type;
-            if (params.name) {
-                object.name = params.name;
-            }
+            object.name = params.name?? 'poster_'+Math.floor(Math.random() * (10000)); ;
+            
             if (params.type === 'link') return; // this type is native from PANOLENs so if we want to add events we should use its methods.
 
             if (params.onClick) {
@@ -429,7 +471,7 @@
 
         // helpers
         self.getPanoramaByName = (name) => self.viewer.getScene().children.find( sc => sc.name === name );
-        self.getObjectByName = (name) =>  self.viewer.panorama.getObjectByName(name) ;
+        self.getObjectByName = (name, pano) => (pano?? self.viewer.panorama).getObjectByName(name) ;
         self.getObjects = (name) =>  self.viewer.panorama.children.filter( obj => obj.type && obj.type.startsWith('pl_') ) ;
         
 
@@ -468,6 +510,7 @@
     }
 
     Element.prototype.posterlens = function(options) {
+        console.log('DATA:', options);
         const instance = new Posterlens(this).init(options);
         return instance;
     };
@@ -531,6 +574,7 @@ const CanvasForTexture = function(text = '', attrs = {}) {
         canvas1.height = params.height;
         canvas1.style.background = params.background;
         canvas1.style.border = params.border;
+        canvas1.style.display = 'none';
         // canvas1.style.padding = (params.size/4)+"px "+(params.size/4)+"px "+(params.size/2)+"px "+(params.size/4)+"px";
         context1 = canvas1.getContext('2d');
         context1 = Object.assign(context1, contextParams);
@@ -664,132 +708,4 @@ function createPlaneIframe(scene, renderer, camera, pano, src) {
     
     rendererCSS.render( cssScene, camera );
     renderer.render( scene, camera );
-}
-
-
-
-
-// v : Viewer
-const applyEditMode = function(posterlens) {
-
-    // INIT propierties:
-    const v = posterlens.viewer;
-    // v.editObj = null;
-    // const world = v.panorama.getObjectByName('invisibleWorld'); // to calculate the Vector 3 pos
-    // const mouse2D = new THREE.Vector2();
-    const self = this; 
-
-    // INIT method
-    // v.editControls = new DragControls( posterlens.getObjects(), v.camera, v.renderer.domElement );
-    // v.editControls.enabled = false;
-    v.editMode = true;
-    if (v.editMode) stopAllAnimations(v);
-    v.editObj = null;
-    const SCALE_FACTOR = 1.1;
-    const ROTATE_DEG = 0.1; // radians. 3.1416 is 180 deg.
-
-    // Buttn to enable/disable Edit Mode: NOT IN USE
-    v.appendControlItem({
-        style: {
-            backgroundImage: 'url(https://images-na.ssl-images-amazon.com/images/I/91ovrqFkzkL._RI_SX200_.jpg)',
-            float: 'left'
-        },    
-        onTap: () => { 
-            v.editMode = !v.editMode;
-            if (v.editMode) stopAllAnimations(v);  
-            exportOptions(); // console the new
-        },
-        group: 'editmode'
-    });
-
-    // Events
-
-    v.panorama.addEventListener('click', (event) => {
-        console.info( self.getMouse3Dposition(event), window.obj.name );
-    });
-
-    v.renderer.domElement.addEventListener('mousedown', (event) => { 
-        const pano = v.panorama;
-        // window.obj = event.intersects[0]? event.intersects[0].object : null ;
-        const intersects = v.raycaster.intersectObject( v.panorama, true );
-        window.obj = intersects[0]? intersects[0].object : null ;
-        if (!window.obj.type.startsWith('pl_')) return;
-
-        stopAllAnimations(v);
-        console.log('CLicked', window.obj.name);
-        // // if is 1nd click to start dragging obj
-        if ( v.editMode && intersects.length > 0 ) { 
-            v.OrbitControls.enabled = false;
-            const point = intersects[ 0 ].point.clone(); // this works
-            v.editObj = window.obj;
-            v.editObj.originalPos = v.editObj.position;                
-            v.editObj.removeEventListener('click', 'posterlens-handler', false); // DOESNT WORK! the event is backed up safe in obj._click
-            }
-    } );
-    v.renderer.domElement.addEventListener('mouseup', (event) => { 
-        v.OrbitControls.enabled = true;
-        if (!v.editObj) return;
-        console.log('New pOSITION for '+v.editObj.name+' : ', v.editObj.position);
-        setTimeout( () => v.editObj = false, 100);
-    });
-    v.renderer.domElement.addEventListener('mousemove', (event) => {
-        if (!v.editObj) return;
-        const newPos = self.getMouse3Dposition(event);
-        // console.log(v.editObj.name + ' : ', newPos); 
-        posterlens.setObjectPos(v.editObj, newPos);
-    });
-    document.addEventListener('keydown', (event) => {
-        if (!v.editMode || !window.obj) return;
-        switch (event.key) {
-            case '+': window.obj.scale.set( window.obj.scale.x * SCALE_FACTOR, window.obj.scale.y * SCALE_FACTOR, window.obj.scale.z * SCALE_FACTOR );
-                break;
-            case '-': window.obj.scale.set( window.obj.scale.x / SCALE_FACTOR, window.obj.scale.y / SCALE_FACTOR, window.obj.scale.z / SCALE_FACTOR ); 
-                break;
-            case 'r': window.obj.rotation.z += ROTATE_DEG; 
-                break;
-            case 't': window.obj.rotation.z -= ROTATE_DEG; 
-                break;
-            default:
-                break;
-        }
-    });
-        
-    // helpers
-    this.getMouse3Dposition = function(event) {
-        const intersects = v.raycaster.intersectObject( v.panorama, true );
-        if ( intersects.length <= 0 ) return;
-        let i = 0;
-        while ( i < intersects.length ) {
-            if (intersects[i].object.name === 'invisibleWorld') {
-                const point = intersects[i].point.clone();
-                const world = v.panorama.getWorldPosition( new THREE.Vector3() );
-                point.sub( world );
-                return [ point.x.toFixed(2)/2, point.y.toFixed(2)/2, point.z.toFixed(2)/2 ];
-            }
-            i++;
-        }
-        
-    }
-
-
-    const exportOptions = function() {
-        const originalOptions = posterlens.o;
-        posterlens.o.worlds.forEach( (panoOptions, i) => {
-            const panorama = v.scene.children[i];
-            if (panorama === v.panorama ) {
-                panoOptions.hotspots.forEach( (ht, index) => {
-                    const object = panorama.children[index];
-                    panoOptions.hotspots[index].pos = object.position;
-                    panoOptions.hotspots[index].rot =  object.rotation.z;
-                    panoOptions.hotspots[index].scale = object.scale;
-                });
-                const exportStr = JSON.stringify(panoOptions, null, 2).split('\n').map( line => line.replace('"', '').replace('"', '') ).join('\n')
-                console.log(exportStr);
-            }
-        });
-
-    }
-
-
-    return self;
 }
