@@ -234,6 +234,7 @@
                     } );
                 }
                 
+                return mesh;
             });
         }
         self.createText3D = function(panorama, text, position, attrs = {} ) {
@@ -472,7 +473,7 @@
         // helpers
         self.getPanoramaByName = (name) => self.viewer.getScene().children.find( sc => sc.name === name );
         self.getObjectByName = (name, pano) => (pano?? self.viewer.panorama).getObjectByName(name) ;
-        self.getObjects = (name) =>  self.viewer.panorama.children.filter( obj => obj.type && obj.type.startsWith('pl_') ) ;
+        self.getObjects = () =>  self.viewer.panorama.children.filter( obj => obj.type && obj.type.startsWith('pl_') ) ;
         
 
         // create transparent world. When we use the helper to grab coordenates on click, this will give us the depth

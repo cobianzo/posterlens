@@ -11,8 +11,8 @@
         <script src="tesim.js"></script>
 
         <script type="text/javascript" src="posterlens-config.js"></script> 
+        <link rel='stylesheet' id='posterlens-css'  href='posterlens.css?ver=5.5' type='text/css' media='all' />
     </head>
-    <link rel='stylesheet' id='posterlens-css'  href='posterlens.css?ver=5.5' type='text/css' media='all' />
 
     <body>
         <div class='wrapper' style="max-width:1200px">
@@ -36,9 +36,7 @@
             
         </script>
 
-        <?php 
-        require_once('edit-mode.html');
-        ?>
+        <?php  require_once('edit-mode.html');  ?>
 
         <script>
             applyEditMode(pl);
