@@ -234,8 +234,8 @@
                     } );
                 }
                 
-                return mesh;
             });
+            return mesh;
         }
         self.createText3D = function(panorama, text, position, attrs = {} ) {
             const params = Object.assign( {
@@ -293,8 +293,8 @@
         self.createText2D = function(panorama, text, position, attrs = {} ) {
             // create a div html element 
             const params = Object.assign( {
-                scale: 1,
-                size: 100,
+                scale: 0.3,
+                size: 50,
                 width: 1000,
                 color: 'white',
                 background: 'black'
