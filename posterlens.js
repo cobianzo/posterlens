@@ -36,14 +36,14 @@
             
             self.o = Object.assign(self.o, options);
             
-            // PANOLENS call!
             const viewerOptions = { container: el, output: 'console', autoHideInfospot: false };
             if (self.o.initialLookAt) {
                 viewerOptions.initialLookAt = new THREE.Vector3( ...self.o.initialLookAt );}
-            
+                
+            // PANOLENS call! (this creates the 'wooorld')
             self.viewer = new PANOLENS.Viewer( viewerOptions );
 
-            // creation of every panorama in the scene. (at least 1)
+            // init creation of every panorama in the scene. (at least 1)
             self.o.worlds.forEach( (scParams, i) => {
                 const pano = new PANOLENS.ImagePanorama( scParams.panorama );
                 pano.name = scParams.name? scParams.name : 'World_' + i;
@@ -51,68 +51,15 @@
                 createInvisibleWorld(pano, scParams.innerPanorama )
             });
             
-            // Now, for every scene created, set up and hotposts. This loop is the same than the one above.
+            // Now, for every panorama created, set up and hotposts. This loop is the same than the one above.
             self.viewer.getScene().children.forEach( (pano, i) => {   
                 // posters
                 const sc = self.o.worlds[i];
                 if (sc.hotspots && sc.hotspots.length ) 
                     sc.hotspots.forEach( (ht,i) => {
-                       
-                            // get Scene by name:
-                            switch (ht.type) {
-                                case 'link': // uses PANOLENS.link
-                                    self.createLink( pano, ht.image, ht.pos, ( ht.link ? ht.link : null ), ht );
-                                break;
-                                case 'poster3d': //  uses THREE.PlaneGeometry plane mesh
-                                    self.createPoster3D( pano, ht.image, ht.pos, ht );
-                                break;
-                                case 'text-3d': // uses THREE.TextGeometry and THREE.Mesh
-                                    self.createText3D( pano, ht.text, ht.pos, ht );
-                                break;
-                                case 'text-2d': // uses Canvas, THREE.PlaneGeometry and THREE.Mesh
-                                    self.createText2D( pano, ht.text, ht.pos, ht );
-                                break;
-                                default:  // 'poster-sprite' uses PANOLENS.infospot
-                                    self.createPosterSprite( pano, ht.image, ht.pos, ( ht.link ? ht.link : null ), ht );
-                                break;
-                            }
-                        //else
-                          //  self.createPanoLink( pano, ht.pos, ht.link, ht );
+                            self.createNewObjectFromParams(pano, ht);
                     });
 
-                // click events for this panorama (world)
-                
-                // pano.addEventListener( 'click', function( event ){
-                //     if ( event.intersects.length > 0 ) {
-                //         const intersect = event.intersects[0];
-                //         console.log('clickedd! interset ' + intersect.object.constructor.name, intersect.object);
-
-                //         if ( self.viewer.panorama.clickableObjects[intersect.object.name]  ) {
-                //             console.log('HAS a click action');
-                //             self.viewer.panorama.clickableObjects[intersect.object.name](event, intersect.object);
-                //         }
-
-                //         if ( intersect.object.constructor.name === 'Infospot') {
-                //             const infoSpot = intersect.object;
-                //             console.log('clicked infospot', infoSpot.name);
-
-                            
-                //             if (infoSpot.link) {
-                                
-                //                 switch (infoSpot.type) {
-                //                     case 'open-world':
-                //                         // nothing to do in this case, it will open scene as panolens works
-                //                         break;
-                //                     default:
-
-                //                         break;
-                //                 }
-                //             }
-
-                //         }
-                //     }
-        
-                // } );
             });
             
             
@@ -125,6 +72,28 @@
             // We can assign it to a var an access to public methods.
             return self;
         }; // end init
+
+        // @params is the hotspots object called when panolens is called with ``new panolens.init( params )``
+        self.createNewObjectFromParams = function(pano = null, params) {
+            if (!pano) pano = self.viewer.panorama;
+            switch (params.type) {
+                case 'link': // uses PANOLENS.link
+                    self.createLink( pano, params.image, params.pos, ( params.link ? params.link : null ), params );
+                break;
+                case 'poster3d': //  uses THREE.PlaneGeometry plane mesh
+                    self.createPoster3D( pano, params.image, params.pos, params );
+                break;
+                case 'text-3d': // uses THREE.TextGeometry and THREE.Mesh
+                    self.createText3D( pano, params.text, params.pos, params );
+                break;
+                case 'text-2d': // uses Canvas, THREE.PlaneGeometry and THREE.Mesh
+                    self.createText2D( pano, params.text, params.pos, params );
+                break;
+                default:  // 'poster-sprite' uses PANOLENS.infospot
+                    self.createPosterSprite( pano, params.image, params.pos, ( params.link ? params.link : null ), params );
+                break;
+            }
+        }
 
         // public functions.
         self.createLink = function(pano, image, position, linkendPanName, attrs = {} ) {
@@ -235,7 +204,6 @@
                 }
                 
             });
-            return mesh;
         }
         self.createText3D = function(panorama, text, position, attrs = {} ) {
             const params = Object.assign( {
@@ -244,30 +212,13 @@
                 specular: 0xfff000,
                 emissive: 0xffffff,
                 size: 0.1,
-                options: {}
+                options: {},
+                fontFamily: 'assets/fonts/Century_Gothic_Regular.js' 
             }, attrs );
 
-            // var textDiv = document.createElement( 'div' );
-            // textDiv.className = 'label';
-            // textDiv.textContent = 'text';
-            // textDiv.style.marginTop = '-1em';
-            // var textLabel = new THREE.CSS2DObject( textDiv );
-            // textLabel.position.set( 0, 300, 0 ); 
-            // //textLabel.scale.set( new THREE.Vector3(params.scale,params.scale,params.scale) ); 
-            // updateObjectParams(textLabel, params);            
-            // var front = self.getObjectByName('grid');
-            // front.add(textLabel);
-            // // panorama.add(textLabel);
-
-            // var labelRenderer = new THREE.CSS2DRenderer();
-            // labelRenderer.setSize( window.innerWidth, window.innerHeight );
-            // labelRenderer.domElement.style.position = 'absolute';
-            // labelRenderer.domElement.style.top = '0px';
-            // labelRenderer.render( self, self.camera );
-            // document.body.appendChild( labelRenderer.domElement );
             var loader = new THREE.FontLoader();
-
-            loader.load( 'assets/fonts/Century_Gothic_Regular.js', function ( font ) {
+            
+            loader.load( params.fontFamily, function ( font ) {
                 var mat = new THREE.MeshPhongMaterial({
                     color: params.textColor,
                     specular: params.specular,
@@ -291,11 +242,11 @@
         }
 
         self.createText2D = function(panorama, text, position, attrs = {} ) {
-            // create a div html element 
+            
             const params = Object.assign( {
-                scale: 0.3,
-                size: 50,
-                width: 1000,
+                scale: 0.15,
+                size: 100,
+                width: 800,
                 color: 'white',
                 background: 'black'
             }, attrs );
@@ -309,33 +260,33 @@
             var texture1 = new THREE.Texture(canvas);
             texture1.needsUpdate = true;
             
-            var material1 = new THREE.MeshBasicMaterial( { color:0xffffff, side:THREE.DoubleSide, map: texture1 } );
+            var material1 = new THREE.MeshBasicMaterial( { color:0xffffff, side: THREE.DoubleSide, map: texture1 } );
             if (params.background === 'transparent')
                 material1.transparent = true;
 
-            var textLabel = new THREE.Mesh(
+            var textPlane = new THREE.Mesh(
                 new THREE.PlaneGeometry(canvas.width, canvas.height),
                 material1
             );
             
-            updateObjectParams(textLabel, params);
+            updateObjectParams(textPlane, params);
             if (attachedObject) { // never used, needs testing
                 const parent = self.getObjectByName(position);
                 if (parent) {
-                    textLabel.position.set( 0, 0, 0 );
-                    parent.add( textLabel );
+                    textPlane.position.set( 0, 0, 0 );
+                    parent.add( textPlane );
                     // add onclick, hover                        
                     
                 } else console.warn('could not create text 2d ', text);
             } else {
-                self.viewer.panorama.add(textLabel);
-                textLabel.alwaysLookatCamera = true;
-                self.setObjectPos(textLabel, position);
+                self.viewer.panorama.add(textPlane);
+                textPlane.alwaysLookatCamera = true;
+                self.setObjectPos(textPlane, position);
                 
-                // updateParentParams(panorama, textLabel, position);
+                // updateParentParams(panorama, textPlane, position);
             }
             
-            textLabel.scale.set( params.scale, params.scale, params.scale);
+            textPlane.scale.set( params.scale, params.scale, params.scale);
             
         }
 
@@ -594,7 +545,7 @@ const CanvasForTexture = function(text = '', attrs = {}) {
     }
 
     function getLines(ctx, text, maxWidth) {
-        var words = text.split(" ");
+        var words = text.toString().split(" ");
         var lines = [];
         var currentLine = words[0];
 

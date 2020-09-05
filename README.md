@@ -5,6 +5,11 @@ Wrapper plugin over Panolens (which works over three.js).
 Allows you to create a panorama with interactive posters.  
 Can be extended to create more complex objects and behaviours.  
 
+TODO:
+use
+    object.matrixAutoUpdate  = false;
+    object.updateMatrix();
+for object that will not me updated (anything without animation I guess)
 ## Install
 ===
 npm install
