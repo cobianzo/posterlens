@@ -53,3 +53,10 @@ html, body {
     max-width: 2000px;
     height: 100%;
 }
+
+
+.pl_tooltip {
+    background: gray;
+    padding: 5px 15px;
+    transform: translate(10px, 10px);
+}

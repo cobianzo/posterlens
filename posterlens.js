@@ -36,12 +36,20 @@
             
             self.o = Object.assign(self.o, options);
             
-            const viewerOptions = { container: el, output: 'console', autoHideInfospot: false };
-            if (self.o.initialLookAt) {
-                viewerOptions.initialLookAt = new THREE.Vector3( ...self.o.initialLookAt );}
-                
+            let viewerOptions = { container: el, output: 'console', autoHideInfospot: false };
+            // viewerOptions = Object.assign( viewerOptions, self.o ); 
+            if (self.o.initialLookAt) 
+                viewerOptions.initialLookAt = new THREE.Vector3( ...self.o.initialLookAt );
+                            
             // PANOLENS call! (this creates the 'wooorld')
             self.viewer = new PANOLENS.Viewer( viewerOptions );
+
+            // updates that must come after panolens creation
+            if (self.o.minAzimuthAngle) 
+                self.viewer.OrbitControls.minAzimuthAngle = self.o.minAzimuthAngle;
+            if (self.o.maxAzimuthAngle) 
+                self.viewer.OrbitControls.maxAzimuthAngle = self.o.maxAzimuthAngle;
+
 
             // init creation of every panorama in the scene. (at least 1)
             self.o.worlds.forEach( (scParams, i) => {
@@ -114,7 +122,7 @@
         }
         self.createPosterSprite = function(pan, image = null, position, link = null, attrs = {} ) {
             const params = Object.assign( {
-                scale: 10
+                scale: 100
             }, attrs );
             var posterInfospot = new PANOLENS.Infospot(params.scale, image);
             posterInfospot.name = image? image.substring(image.lastIndexOf('/')+1) : 'no_name';
@@ -176,12 +184,20 @@
                 
                 if (params.alpha) {
                     const textureAlpha = loader.load( params.alpha , function(im) { 
-
                     } );
                 }
 
                 mesh.name = 'poster_' + self.viewer.panorama.children.length;
                 
+
+                // this works
+                if (params.hoverText)  {
+                    // create the tooltip.
+                    var tooltip = new Tooltip( params.hoverText, mesh, {});
+                    mesh.tooltip = tooltip; // to access to the methods.
+                    params.onHoverEnter = e => tooltip.show() ;
+                    params.onHoverLeave = e => tooltip.hide() ;
+                }
                 // add onclick, hover
                 updateObjectParams(mesh, params); // set click and other events
                 self.viewer.panorama.add(mesh);
@@ -191,27 +207,20 @@
 
                 mesh.scale.set(params.scale,params.scale,params.scale);
 
-                // this works
-                if (params.hoverText)  {
-                    mesh.addEventListener( 'hoverenter', function(e) { 
-                        // TODO:
-                        console.log('hovering '+mesh.name)
-                    } );
-                    mesh.addEventListener( 'hoverleave', function(e) { 
-                        // TODO:
-                        console.log('hovering left from '+mesh.name)
-                    } );
-                }
                 
-            });
+                
+                
+
+                    
+            }); // end texture onload
         }
         self.createText3D = function(panorama, text, position, attrs = {} ) {
             const params = Object.assign( {
-                scale: 200,
+                scale: 0.3,
+                size: 200,
                 textColor: 0xfffbcb,
                 specular: 0xfff000,
                 emissive: 0xffffff,
-                size: 0.1,
                 options: {},
                 fontFamily: 'assets/fonts/Century_Gothic_Regular.js' 
             }, attrs );
@@ -261,6 +270,7 @@
             texture1.needsUpdate = true;
             
             var material1 = new THREE.MeshBasicMaterial( { color:0xffffff, side: THREE.DoubleSide, map: texture1 } );
+            material1.needsUpdate = true;
             if (params.background === 'transparent')
                 material1.transparent = true;
 
@@ -321,20 +331,25 @@
             if (document.querySelector('.pl_modal-wrapper')) 
                 document.querySelector('.pl_modal-wrapper').remove();
             pl.el.after(wrapper);
+            const closeHandler = (e) => (e.keyCode === 27 ? this.modal.closeModalFn(e) : false );
+            document.addEventListener('keydown', closeHandler, 'closeModal' ); // clicking ESC 
             
             this.modal = {}; // <instance Posterlens>.modal
             this.modal.el = modal; // `this` is the instance of Panolens
             this.modal.closeModalFn = (e) => {
                 e.stopPropagation();
                 e.preventDefault();
-                const closeTween = new TWEEN.Tween( wrapper.style ).to( { opacity: 0 }, 200 ).onComplete(()=>{
+                const closeTween = new TWEEN.Tween( wrapper.style ).to( { opacity: 0 }, 200 ).onComplete(()=>{ // the animation doesnt work. Its css transition what works
                     wrapper.style.display = 'none';
                     options.onClose();
+                    document.removeEventListener('keydown', closeHandler, 'closeModal' );
                 }).start();
             }
             close.addEventListener('click', this.modal.closeModalFn );
             wrapper.addEventListener('click', this.modal.closeModalFn );
             modal.addEventListener('click', e => e.stopPropagation() );
+            
+            
             
             return this.modal;
 
@@ -425,7 +440,19 @@
         self.getPanoramaByName = (name) => self.viewer.getScene().children.find( sc => sc.name === name );
         self.getObjectByName = (name, pano) => (pano?? self.viewer.panorama).getObjectByName(name) ;
         self.getObjects = () =>  self.viewer.panorama.children.filter( obj => obj.type && obj.type.startsWith('pl_') ) ;
-        
+        self.getMouse3DPosition = () => {                                        
+                                        const intersects = self.viewer.raycaster.intersectObject( self.viewer.panorama, true );
+                                        if ( intersects.length <= 0 ) return;
+                                        let i = 0;
+                                        while ( i++ < intersects.length )
+                                            if (intersects[i].object.name === 'invisibleWorld') {
+                                                const point = intersects[i].point.clone();
+                                                const world = self.viewer.panorama.getWorldPosition( THREE.Vector3() );
+                                                point.sub( world );
+                                                const currentMP = [ point.x.toFixed(2)/2, point.y.toFixed(2)/2, point.z.toFixed(2)/2 ];
+                                                return currentMP;
+                                            }
+                                    }
 
         // create transparent world. When we use the helper to grab coordenates on click, this will give us the depth
         const createInvisibleWorld = function(pano, attrs = {}) {
@@ -437,7 +464,7 @@
                 const point = event.intersects[ 0 ].point.clone();
                 point.sub( self.viewer.panorama.getWorldPosition( new THREE.Vector3() ) );
                 window.obj = event.intersects[ 0 ].object;
-                console.info( `${point.x.toFixed(2)/2}, ${point.y.toFixed(2)/2}, ${point.z.toFixed(2)/2}`, window.obj.name );    
+                console.info( `${point.x.toFixed(2)/2}, ${point.y.toFixed(2)/2}, ${point.z.toFixed(2)/2}`, window.obj.name );     // mouse click 3d pos
             } });
             pano.add( sphere );
             
@@ -452,6 +479,49 @@
                 }
             }
         }
+
+        // encapsulated fn to handle tooltip creation show and hide, positioning it over the object inthe viewer.
+        const Tooltip = function( text = '', object, attrs = {} ) {
+            const toolt   = document.createElement('div'); toolt.classList.add('pl_tooltip'); toolt.id = 'pl_tooltip-'+object.name;
+            const inner     = document.createElement('div'); inner.classList.add('pl_tooltip__inner'); toolt.append(inner);
+            inner.textContent = text;
+            self.el.append(toolt);
+            this.el = toolt;
+            this.object = object;
+            this.el.style.position = 'absolute';
+            this.el.style.display = 'none';
+            this.el.style.opacity = 0;
+            const thisTooltip = this;
+            this.show = function() {
+                this.positionElementOverObject();                
+                self.viewer.addUpdateCallback(this.positionElementOverObject);
+                this.el.style.display = 'block';
+                this.el.style.opacity = 0.9;
+            }
+            
+            this.hide = function() {
+                this.el.style.display = 'none';
+                this.el.style.opacity = 0;
+                self.viewer.removeUpdateCallback(this.positionElementOverObject);
+            }
+
+            // helper. Transform the position of te object into screen coordinates x,y, and assings them to an element, which must hae positino absolte.
+            this.positionElementOverObject = function() {
+                const container = self.el;
+                const element = thisTooltip.el;
+                const object = thisTooltip.object;
+                var width = container.offsetWidth, height = container.offsetHeight;
+                var widthHalf = width / 2, heightHalf = height / 2;
+                const posMouse = self.getMouse3DPosition();
+                var pos = new THREE.Vector3(...posMouse);
+                // var pos = object.position.clone();
+                pos.project(self.viewer.camera);
+                element.style.left = ( pos.x * widthHalf ) + widthHalf + 'px';
+                element.style.top = - ( pos.y * heightHalf ) + heightHalf + 'px'; 
+            }
+
+            return this;
+        }        
 
         // called on init and resize window event TODELETE
         self.resizeWindow = function() {
@@ -572,7 +642,7 @@ const CanvasForTexture = function(text = '', attrs = {}) {
 // Animations plugin
 function glowAnimation( object, duration = 200 ) { 
     if (object.glowAnimationOriginalScale) {} // object.scale.set( new THREE.Vector3( Object.values( object.glowAnimationOriginalScale )) );
-        else object.glowAnimationOriginalScale = { ... object.scale };
+        else object.glowAnimationOriginalScale = { ...object.scale };
     object.glowAnimation = new TWEEN.Tween( object.scale ).to( { x: object.glowAnimationOriginalScale.x * 1.05, y: object.glowAnimationOriginalScale.y * 1.05, x: object.glowAnimationOriginalScale.x * 1.05   }, duration );
     object.glowAnimationBack = new TWEEN.Tween( object.scale ).to( { x: object.glowAnimationOriginalScale.x / 1.05, y: object.glowAnimationOriginalScale.y / 1.05, x: object.glowAnimationOriginalScale.x / 1.05   }, duration );
     object.glowAnimation.chain(object.glowAnimationBack);
