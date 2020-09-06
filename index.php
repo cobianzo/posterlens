@@ -36,7 +36,7 @@
             
         </script>
 
-        <?php  require_once('edit-mode.html');  ?>
+        <?php // require_once('edit-mode.html');  ?>
 
         <script>
             applyEditMode(pl);

@@ -1,9 +1,12 @@
 var data = {
   "initialLookAt": [
-    4988.74,
-    -208.76,
-    -58.29
+    300
+    -108.76,
+    -8.29
   ],
+  "viewIndicator": true,
+  "indicatorSize": 100,
+  "cameraFov": 90,
   "worlds": [
     {
       "panorama": "assets/tesim-pano-hall-v4.jpg", // hall360
@@ -27,7 +30,7 @@ var data = {
           "scale": 50,
           "name": "grid",
           "link": "World_1",
-          "rot": 0
+          "animated": false
         },
         {
           "type": "link",
@@ -43,7 +46,7 @@ var data = {
           "rot": 0
         },
         {
-          "type": "link",
+          "type": "poster-sprite",
           "image": "https://images-na.ssl-images-amazon.com/images/I/91nELBuo3kL._RI_SX200_.jpg",
           "pos": [
             231.04,
@@ -51,22 +54,23 @@ var data = {
             -92.47
           ],
           "scale": 74.00249944258172,
-          "name": "link-with-posterwith-image",
+          "name": "wonderwome",
           "link": "World_1",
-          "rot": 0
+          "hoverText": "WonderWoman!",
+          "animated": 'hover'
         },
         {
-          "type": "poster-sprite",
+          "type": "poster3d",
           "image": "https://upload.wikimedia.org/wikipedia/commons/9/9c/Shane_%281953_poster%29.jpg",
           "pos": [
             239.525,
             35.25,
             57.875
           ],
-          "scale": 80.52550000000005,
+          "scale": 10.52550000000005,
           "name": "shane",
-          "hoverText": "Wonder Woman! \n  AAnd mooore",
-          "rot": 0
+          "hoverText": "SHANEE",
+          "animated": 'hover'
         },
         {
           "type": "poster3d",

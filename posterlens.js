@@ -37,7 +37,7 @@
             self.o = Object.assign(self.o, options);
             
             let viewerOptions = { container: el, output: 'console', autoHideInfospot: false };
-            // viewerOptions = Object.assign( viewerOptions, self.o ); 
+            viewerOptions = Object.assign( viewerOptions, self.o ); 
             if (self.o.initialLookAt) 
                 viewerOptions.initialLookAt = new THREE.Vector3( ...self.o.initialLookAt );
                             
@@ -104,6 +104,8 @@
         }
 
         // public functions.
+
+        // Create link is deprecated. User PosterSprite has the same and more features.
         self.createLink = function(pano, image, position, linkendPanName, attrs = {} ) {
             const params = Object.assign( {
                 scale: 300
@@ -125,11 +127,13 @@
                 scale: 100
             }, attrs );
             var posterInfospot = new PANOLENS.Infospot(params.scale, image);
-            posterInfospot.name = image? image.substring(image.lastIndexOf('/')+1) : 'no_name';
-            posterInfospot.link = link;
+            
+            posterInfospot.animated = params.animated? true : false;
+            if (link) posterInfospot.link = link;
             if (params.hoverText) {
                 posterInfospot.addHoverText(params.hoverText);
             }
+            // If link we apply event to load panorama
             if (posterInfospot.link) {
                 params.onClick = (event, postIS) => {
                     const thePanorama = self.getPanoramaByName(postIS.link);
@@ -356,7 +360,7 @@
         }
 
 
-        // helper to common create object/poster
+        // helper to common after creation object/poster. Set up params like name, type events
         const updateObjectParams = function(object, params) {
             object.type = 'pl_' + params.type;
             object.name = params.name?? 'poster_'+Math.floor(Math.random() * (10000)); ;
@@ -374,7 +378,12 @@
             if (params.callback)
                 params.callback(object);
             
-                
+            if (params.animated === 'always') setTimeout( () => glowAnimation( object, 1000 ), 500 );
+            if (params.animated === 'hover' && object.constructor.name !== 'Infospot') {
+                object.animated = true;
+                object.addEventListener( 'hoverenter', (event) => glowAnimationForward(object, 200).start() );
+                object.addEventListener( 'hoverleave', (event) => glowAnimationBack(object, 200).start() );
+            }
         }
         // not in use anymore
         const updateParentParams = function(panorama, object, position) {
@@ -494,7 +503,7 @@
             const thisTooltip = this;
             this.show = function() {
                 this.positionElementOverObject();                
-                self.viewer.addUpdateCallback(this.positionElementOverObject);
+                self.viewer.addUpdateCallback(this.positionElementOverObject); // on every animtion frame render calculate pos
                 this.el.style.display = 'block';
                 this.el.style.opacity = 0.9;
             }
@@ -641,15 +650,27 @@ const CanvasForTexture = function(text = '', attrs = {}) {
 
 // Animations plugin
 function glowAnimation( object, duration = 200 ) { 
-    if (object.glowAnimationOriginalScale) {} // object.scale.set( new THREE.Vector3( Object.values( object.glowAnimationOriginalScale )) );
-        else object.glowAnimationOriginalScale = { ...object.scale };
-    object.glowAnimation = new TWEEN.Tween( object.scale ).to( { x: object.glowAnimationOriginalScale.x * 1.05, y: object.glowAnimationOriginalScale.y * 1.05, x: object.glowAnimationOriginalScale.x * 1.05   }, duration );
-    object.glowAnimationBack = new TWEEN.Tween( object.scale ).to( { x: object.glowAnimationOriginalScale.x / 1.05, y: object.glowAnimationOriginalScale.y / 1.05, x: object.glowAnimationOriginalScale.x / 1.05   }, duration );
-    object.glowAnimation.chain(object.glowAnimationBack);
-    object.glowAnimationBack.chain(object.glowAnimation);
-    object.glowAnimation.start();
+    glowAnimationForward(object, duration).start();
+    glowAnimationBack(object, duration);
+    // infitive loop with these chains
+    object.glowAnimation?.chain(object.glowAnimationBack);
+    object.glowAnimationBack?.chain(object.glowAnimation);
     return object.glowAnimation;
 }
+    function glowAnimationForward(object, duration) {
+        if (!object.animated) return new TWEEN.Tween(); // its like returning null
+        if (!object.glowAnimationOriginalScale) 
+            object.glowAnimationOriginalScale = { ...object.scale };    
+        object.glowAnimation = new TWEEN.Tween( object.scale ).to( { x: object.glowAnimationOriginalScale.x * 1.05, y: object.glowAnimationOriginalScale.y * 1.05, x: object.glowAnimationOriginalScale.x * 1.05   }, duration );
+        return object.glowAnimation;
+    }
+    function glowAnimationBack(object, duration) {
+        if (!object.animated) return new TWEEN.Tween(); // its like returning null
+        object.glowAnimationBack = new TWEEN.Tween( object.scale ).to( { x: object.glowAnimationOriginalScale.x / 1.05, y: object.glowAnimationOriginalScale.y / 1.05, x: object.glowAnimationOriginalScale.x / 1.05   }, duration );
+        return object.glowAnimationBack;
+    }
+
+
 function stopGlowAnimation( object ) {
     if (!object.glowAnimationBack) return;
     object.glowAnimationBack.chain(); // this unchains the loop and it will stop after the next glow back.
@@ -659,10 +680,13 @@ function stopGlowAnimation( object ) {
         delete[object.glowAnimationBack];
     })
 }
-const stopAllAnimations = (viewer) => viewer.panorama.children.forEach( obj => {
+const stopAllAnimations = (viewer, deleteAnimations = false) => viewer.panorama.children.forEach( obj => {
             stopGlowAnimation( obj );
-            if (obj.scaleUpAnimation) obj.scaleUpAnimation = { start: ()=>{}, stop: ()=>{}}
-            if (obj.scaleDownAnimation) obj.scaleDownAnimation = { start: ()=>{}, stop: ()=>{}}
+            if (obj.animated) obj.animated = false;
+            if (deleteAnimations) {
+                if (obj.scaleUpAnimation) obj.scaleUpAnimation = { start: ()=>{}, stop: ()=>{}}
+                if (obj.scaleDownAnimation) obj.scaleDownAnimation = { start: ()=>{}, stop: ()=>{}}
+            }
     });
 
 
