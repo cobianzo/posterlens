@@ -56,7 +56,10 @@
                 const pano = new PANOLENS.ImagePanorama( scParams.panorama );
                 pano.name = scParams.name? scParams.name : 'World_' + i;
                 self.viewer.add( pano );
-                createInvisibleWorld(pano, scParams.innerPanorama )
+                createInvisibleWorld(pano, scParams.innerPanorama );
+                if (scParams.outerPanorama) {
+                    createInvisibleWorld(pano, Object.assign({radius: 1000, name: 'outerWorld'}, scParams.outerPanorama) );
+                }
             });
             
             // Now, for every panorama created, set up and hotposts. This loop is the same than the one above.
@@ -65,6 +68,8 @@
                 const sc = self.o.worlds[i];
                 if (sc.hotspots && sc.hotspots.length ) 
                     sc.hotspots.forEach( (ht,i) => {
+                            if (ht.name === 'a') debugger
+                            if (ht.alwaysLookatCamera === "false") ht.alwaysLookatCamera = false; // fix possible bug on this specific field.
                             self.createNewObjectFromParams(pano, ht);
                     });
 
@@ -85,11 +90,12 @@
         self.createNewObjectFromParams = function(pano = null, params) {
             if (!pano) pano = self.viewer.panorama;
             switch (params.type) {
-                case 'link': // uses PANOLENS.link
+                case 'link': // uses PANOLENS.link - DEPRECATED
                     self.createLink( pano, params.image, params.pos, ( params.link ? params.link : null ), params );
                 break;
-                case 'poster3d': //  uses THREE.PlaneGeometry plane mesh
-                    self.createPoster3D( pano, params.image, params.pos, params );
+                case 'poster-sprite': // uses PANOLENS.infospot - it doesnt work ok in real time creation. Deprecated
+                    // self.createPosterSprite( pano, params.image, params.pos, ( params.link ? params.link : null ), params );
+                    self.createPoster( pano, params.image, params.pos, Object.assign(params, {sprite: true}) );
                 break;
                 case 'text-3d': // uses THREE.TextGeometry and THREE.Mesh
                     self.createText3D( pano, params.text, params.pos, params );
@@ -97,9 +103,14 @@
                 case 'text-2d': // uses Canvas, THREE.PlaneGeometry and THREE.Mesh
                     self.createText2D( pano, params.text, params.pos, params );
                 break;
-                default:  // 'poster-sprite' uses PANOLENS.infospot
-                    self.createPosterSprite( pano, params.image, params.pos, ( params.link ? params.link : null ), params );
+                case 'text-2d-sprite': // uses Canvas, THREE.Sprite
+                    self.createText2D( pano, params.text, params.pos, Object.assign(params, {sprite: true}) );
                 break;
+                case 'poster3d':  //  uses THREE.PlaneGeometry plane mesh
+                default:
+                    self.createPoster( pano, params.image, params.pos, params );
+                break;
+
             }
         }
 
@@ -123,6 +134,7 @@
             }
         }
         self.createPosterSprite = function(pan, image = null, position, link = null, attrs = {} ) {
+            debugger
             const params = Object.assign( {
                 scale: 100
             }, attrs );
@@ -161,37 +173,57 @@
             // self.getScene().sphereMesh.add( planeGizmo );
         }
         
-        self.createPoster3D = function(panorama, image, position, attrs = {} ) {
+        self.createPoster = function(panorama, image, position, attrs = {} ) {
             const params = Object.assign( {
-                scale: 10
+                scale: attrs.sprite? 100 : 10,
+                sprite: false,
+                animatedMap: 0, // if 2 or more, the number is the set of frame sin the sprite texture
+                animatedMapSpeed: 25
             }, attrs );
 
             const loader = new THREE.TextureLoader();
             
             // we use the texture image to create the dimentions of the poster.
 		    const texture1 = loader.load( image , function(im) { 
-                const ratio = im.image.height/im.image.width;
-                const geometry = new THREE.PlaneBufferGeometry( 10, 10 * ratio, 3 );
+                let ratio = im.image.height/im.image.width;
+                if (params.animatedMap > 1) ratio *= params.animatedMap;
                 const alphaMap = params.alpha? loader.load( params.alpha ) : null;
-                const materialAttrs = {color: 0xffffff, side: THREE.DoubleSide, map: texture1, 
+                let materialAttrs = {color: 0xffffff, side: THREE.DoubleSide, map: texture1, 
                     alphaMap: alphaMap,
-                    transparent: alphaMap? true : false,
+                    transparent: alphaMap || ( params.animatedMap > 1 ) || (image.slice(-3) === 'png') ? true : false,
                     depthTest: alphaMap? false : true,
-                    // as the alpha map for the material
-                    //alphaMap: texture1,
-                    // I also need to make sure the transparent
-                    // property is true
-                    //transparent: true,
                 };
-                const material2 = new THREE.MeshBasicMaterial( materialAttrs );
-                const mesh = new THREE.Mesh( geometry, material2 );
+                
+                var mesh;
+                if (params.sprite) {
+                    // materialAttrs = Object.assign(materialAttrs, {
+                    //      useScreenCoordinates: false,
+		            //      color: 0x0000ff, transparent: false, blending: THREE.AdditiveBlending });
+                    var material2 = new THREE.SpriteMaterial( materialAttrs ); // turns everythign black!
+                    mesh = new THREE.Sprite(material2); // this works, to create a sprite instead of a mesh, but in edit mode is not selectable
+                    mesh.scale.set(100, 100 * ratio, 3);
+                } else {
+                    const material2 = new THREE.MeshBasicMaterial( materialAttrs );
+                    const geometry = new THREE.PlaneBufferGeometry( 10, 10 * ratio, 3 );
+                    mesh = new THREE.Mesh( geometry, material2 );
+                }
+
+                if (params.animatedMap > 1) {
+                    texture1.renderCount = 0;
+                    texture1.repeat =  { x: 1/params.animatedMap, y: 1 }
+                    self.viewer.addUpdateCallback( () => {
+                        if ((texture1.renderCount++ % parseInt(100/params.animatedMapSpeed)) === 0 )
+                            texture1.offset.x = (texture1.offset.x + 1/params.animatedMap) % 1
+                        if (texture1.renderCount === 100) texture1.renderCount = 0;
+                    });
+                }
                 
                 if (params.alpha) {
                     const textureAlpha = loader.load( params.alpha , function(im) { 
                     } );
                 }
 
-                mesh.name = 'poster_' + self.viewer.panorama.children.length;
+                mesh.name = (params.sprite? 'sprite_' : 'poster_') + self.viewer.panorama.children.length;
                 
 
                 // this works
@@ -204,9 +236,11 @@
                 }
                 // add onclick, hover
                 updateObjectParams(mesh, params); // set click and other events
-                self.viewer.panorama.add(mesh);
-                mesh.alwaysLookatCamera = true;
+                self.viewer.panorama.add(mesh); 
+                
+                mesh.alwaysLookatCamera = params.alwaysLookatCamera === false? false : true;
                 self.setObjectPos(mesh, position);
+                self.setObjectRot(mesh, params.rot);
                 // updateParentParams(panorama, mesh, position);
 
                 mesh.scale.set(params.scale,params.scale,params.scale);
@@ -247,8 +281,11 @@
                 updateObjectParams(textMesh, params);                
                 //updateParentParams(panorama, textMesh, position);
                 self.viewer.panorama.add(textMesh);
-                textMesh.alwaysLookatCamera = true;
+                
+                textMesh.alwaysLookatCamera = params.alwaysLookatCamera === false? false : true;
                 self.setObjectPos(textMesh, position);
+                self.setObjectRot(textMesh, params.rot);
+
                 textMesh.scale.set(params.scale,params.scale,params.scale);
             } );
     
@@ -261,7 +298,8 @@
                 size: 100,
                 width: 800,
                 color: 'white',
-                background: 'black'
+                background: 'black',
+                sprite: false
             }, attrs );
 
             const attachedObject = ('string' === typeof(position));
@@ -272,16 +310,20 @@
             // canvas contents will be used for a texture
             var texture1 = new THREE.Texture(canvas);
             texture1.needsUpdate = true;
-            
-            var material1 = new THREE.MeshBasicMaterial( { color:0xffffff, side: THREE.DoubleSide, map: texture1 } );
+            const materialParams = { color:0xffffff, side: THREE.DoubleSide, map: texture1 };            
+            var material1 = params.sprite? new THREE.SpriteMaterial( materialParams  ) : new THREE.MeshBasicMaterial( materialParams );
             material1.needsUpdate = true;
             if (params.background === 'transparent')
                 material1.transparent = true;
 
-            var textPlane = new THREE.Mesh(
-                new THREE.PlaneGeometry(canvas.width, canvas.height),
-                material1
-            );
+            var textPlane;
+            const ratio = canvas.height/canvas.width;
+            if (params.sprite) {
+                textPlane = new THREE.Sprite(material1); // this works, to create a sprite instead of a mesh, but in edit mode is not selectable
+            } else {
+                textPlane = new THREE.Mesh(
+                    new THREE.PlaneGeometry(canvas.width, canvas.height), material1 );
+            }
             
             updateObjectParams(textPlane, params);
             if (attachedObject) { // never used, needs testing
@@ -294,13 +336,18 @@
                 } else console.warn('could not create text 2d ', text);
             } else {
                 self.viewer.panorama.add(textPlane);
-                textPlane.alwaysLookatCamera = true;
-                self.setObjectPos(textPlane, position);
-                
+
+                textPlane.alwaysLookatCamera = params.alwaysLookatCamera === false? false : true;
+                self.setObjectPos(textPlane, params.pos);
+                self.setObjectRot(textPlane, params.rot);
                 // updateParentParams(panorama, textPlane, position);
             }
             
-            textPlane.scale.set( params.scale, params.scale, params.scale);
+            if (params.sprite) {
+                textPlane.scale.set(100, 100 * ratio, 3);
+            } else {
+                textPlane.scale.set( params.scale, params.scale, params.scale);
+            }
             
         }
 
@@ -385,7 +432,8 @@
                 object.addEventListener( 'hoverleave', (event) => glowAnimationBack(object, 200).start() );
             }
         }
-        // not in use anymore
+
+        // not in use anymore TODELETE
         const updateParentParams = function(panorama, object, position) {
                 // we create a parent to orbit it
                 object.positionByParentRotation = true; // flag used in setObjPos
@@ -398,7 +446,8 @@
                 self.setObjectPos(object, position);
         }
         self.setObjectPos = function(object, position) { // public fn
-            if (object.positionByParentRotation) {
+            // This one is not in use anymore, but it works. Now we use alwaysLookatCamera
+            if (object.positionByParentRotation) { 
                 object.position.set(0, -1*OFFSET_Y_PARENT_PIVOT + position[1], Math.hypot(position[0], position[2])) // instead of moving it, we rotate the parent
                 object.rotation.y = Math.PI;
                 // calculate angle of rotation: 
@@ -413,15 +462,21 @@
                object.parent.rotation.y = theta;
                object.parent.scale.x = object.parent.scale.y = object.parent.scale.z = 1;
                object.parent.name = object.name + '_pivot';
-            } else {
+            } else { 
+              //  if (object.name === 'a') debugger
                 if (object.alwaysLookatCamera) {
                     var theta = Math.atan2(position[0], position[2] );
                     object.rotation.y = theta + Math.PI;
-                } 
-                object.position.set( ...position );
+                }
+                if (position.x) object.position.set( position ); // if we are passing a Vector
+                else object.position.set( ...position ); // if we are passing an array of 3 values
             }
         }
-
+        self.setObjectRot = function(object, rotation) {
+            if ( !object.alwaysLookatCamera ) { // set the rotation unless it it meant to be set with the position
+                if (rotation) object.rotation.set(...rotation);
+            }
+        }
 
 
         // private methods
@@ -465,25 +520,32 @@
 
         // create transparent world. When we use the helper to grab coordenates on click, this will give us the depth
         const createInvisibleWorld = function(pano, attrs = {}) {
-            var geometry = new THREE.SphereGeometry( 500, 32, 32 );
+            const params = Object.assign( {
+                image: '',
+                alpha: '',
+                radius: 500,
+                name: 'invisibleWorld'
+            }, attrs );
+            var geometry = new THREE.SphereGeometry( params.radius, 32, 32 );
             var material = new THREE.MeshBasicMaterial( {color: 0xffffff, side: THREE.BackSide, visible: false } );
             var sphere = new THREE.Mesh( geometry, material );          
-            sphere.name = 'invisibleWorld';
-            pano.addEventListener( 'click', (event) => { if ( event.mouseEvent.altKey && event.intersects.length > 0 ) {  // only if DEBUG (TODO). ClickAlt nd click to get position
-                const point = event.intersects[ 0 ].point.clone();
-                point.sub( self.viewer.panorama.getWorldPosition( new THREE.Vector3() ) );
-                window.obj = event.intersects[ 0 ].object;
-                console.info( `${point.x.toFixed(2)/2}, ${point.y.toFixed(2)/2}, ${point.z.toFixed(2)/2}`, window.obj.name );     // mouse click 3d pos
-            } });
+            sphere.name = params.name;
+            // WORKS: 
+            // pano.addEventListener( 'click', (event) => { if ( event.mouseEvent.altKey && event.intersects.length > 0 ) {  // only if DEBUG (TODO). ClickAlt nd click to get position
+            //     const point = event.intersects[ 0 ].point.clone();
+            //     point.sub( self.viewer.panorama.getWorldPosition( new THREE.Vector3() ) );
+            //     window.obj = event.intersects[ 0 ].object;
+            //     console.info( `${point.x.toFixed(2)/2}, ${point.y.toFixed(2)/2}, ${point.z.toFixed(2)/2}`, window.obj.name );     // mouse click 3d pos
+            // } });
             pano.add( sphere );
             
-            if (attrs.image) {
+            if (params.image) {
                 const loader = new THREE.TextureLoader();
-                const texture = loader.load( attrs.image );
+                const texture = loader.load( params.image );
                 material.map = texture;
                 material.visible = true;
-                if (attrs.alpha) {
-                    material.alphaMap = loader.load( attrs.alpha );
+                if (params.alpha) {
+                    material.alphaMap = loader.load( params.alpha );
                     material.transparent = true;
                 }
             }
@@ -564,14 +626,15 @@
 
 
 
-
+// Creates a canvas with the selected text.
+// I could include it inside as private method
 
 const CanvasForTexture = function(text = '', attrs = {}) {
     
     const params = Object.assign( {
                     size: 15,
                     width: '',
-                    font: 'Arial',
+                    fontFamily: 'Arial',
                     fontWeight: 'normal',
                     color: 'red',
                     border: '1px solid white',
@@ -588,7 +651,7 @@ const CanvasForTexture = function(text = '', attrs = {}) {
 
         
         const contextParams = {
-            font: params.fontWeight+' '+params.size+"px "+params.font,
+            font: params.fontWeight+' '+params.size+"px "+params.fontFamily,
             fillStyle: params.color,
         }
         // create a canvas element, just to calculate the lines and therefore the height.
@@ -689,69 +752,3 @@ const stopAllAnimations = (viewer, deleteAnimations = false) => viewer.panorama.
             }
     });
 
-
-
-
-// HTML as texture plugin
-
-////////////
-	// CUSTOM //
-	////////////
-function createPlaneIframe(scene, renderer, camera, pano, src) {
-	var planeMaterial   = new THREE.MeshBasicMaterial({color: 0x000000, opacity: 0.1, side: THREE.DoubleSide });
-	var planeWidth = 360;
-    var planeHeight = 120;
-	var planeGeometry = new THREE.PlaneGeometry( planeWidth, planeHeight );
-	var planeMesh= new THREE.Mesh( planeGeometry, planeMaterial );
-	planeMesh.position.y += planeHeight/2;
-    // add it to the standard (WebGL) scene
-    planeMesh.position.set( 0.2, 50, -100);
-    planeMesh.scale.set( 0.2, 0.2, 0.2);
-	pano.add(planeMesh);
-	
-	// create a new scene to hold CSS
-	var cssScene = new THREE.Scene();
-	// create the iframe to contain webpage
-	var element	= document.createElement('iframe')
-	// webpage to be loaded into iframe
-	element.src	= src;
-	// width of iframe in pixels
-	var elementWidth = 1024;
-	// force iframe to have same relative dimensions as planeGeometry
-	var aspectRatio = planeHeight / planeWidth;
-	var elementHeight = elementWidth * aspectRatio;
-	element.style.width  = elementWidth + "px";
-	element.style.height = elementHeight + "px";
-	
-	// create a CSS3DObject to display element
-	var cssObject = new THREE.CSS3DObject( element );
-	// synchronize cssObject position/rotation with planeMesh position/rotation 
-	cssObject.position = planeMesh.position;
-	cssObject.rotation = planeMesh.rotation;
-	// resize cssObject to same size as planeMesh (plus a border)
-	var percentBorder = 0.05;
-	cssObject.scale.x /= (1 + percentBorder) * (elementWidth / planeWidth);
-	cssObject.scale.y /= (1 + percentBorder) * (elementWidth / planeWidth);
-	cssScene.add(cssObject);
-	
-	// create a renderer for CSS
-	rendererCSS	= new THREE.CSS3DRenderer();
-	rendererCSS.setSize( window.innerWidth, window.innerHeight );
-	rendererCSS.domElement.style.position = 'absolute';
-	rendererCSS.domElement.style.top	  = 0;
-	rendererCSS.domElement.style.margin	  = 0;
-	rendererCSS.domElement.style.padding  = 0;
-	document.body.appendChild( rendererCSS.domElement );
-	// when window resizes, also resize this renderer
-	// THREEx.WindowResize(rendererCSS, camera);
-
-    
-	renderer.domElement.style.position = 'absolute';
-	renderer.domElement.style.top      = 0;
-	// make sure original renderer appears on top of CSS renderer
-	renderer.domElement.style.zIndex   = 1;
-    rendererCSS.domElement.appendChild( renderer.domElement );
-    
-    rendererCSS.render( cssScene, camera );
-    renderer.render( scene, camera );
-}
