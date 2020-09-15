@@ -68,7 +68,6 @@
                 const sc = self.o.worlds[i];
                 if (sc.hotspots && sc.hotspots.length ) 
                     sc.hotspots.forEach( (ht,i) => {
-                            if (ht.name === 'a') debugger
                             if (ht.alwaysLookatCamera === "false") ht.alwaysLookatCamera = false; // fix possible bug on this specific field.
                             self.createNewObjectFromParams(pano, ht);
                     });
@@ -117,61 +116,61 @@
         // public functions.
 
         // Create link is deprecated. User PosterSprite has the same and more features.
-        self.createLink = function(pano, image, position, linkendPanName, attrs = {} ) {
-            const params = Object.assign( {
-                scale: 300
-            }, attrs );
-            const linkedPan = self.getPanoramaByName(linkendPanName);
-            if (linkedPan) {
-                //console.log('creating link: ', arguments)
-                pano.link(linkedPan , new THREE.Vector3( ...position ), params.scale, (image ? image : PANOLENS.DataImage.Arrow) );
-                const infoSpot = pano.children[pano.children.length-1];
-                updateObjectParams(infoSpot, params);
-                // arrowInfospot.name = attrs.name? attrs.name : '';
-                if (params.hoverText) { // doesnt work in a link
-                    infoSpot.addHoverText(params.hoverText);
-                }
-            }
-        }
-        self.createPosterSprite = function(pan, image = null, position, link = null, attrs = {} ) {
-            debugger
-            const params = Object.assign( {
-                scale: 100
-            }, attrs );
-            var posterInfospot = new PANOLENS.Infospot(params.scale, image);
+        // self.createLink = function(pano, image, position, linkendPanName, attrs = {} ) {
+        //     const params = Object.assign( {
+        //         scale: 300
+        //     }, attrs );
+        //     const linkedPan = self.getPanoramaByName(linkendPanName);
+        //     if (linkedPan) {
+        //         //console.log('creating link: ', arguments)
+        //         pano.link(linkedPan , new THREE.Vector3( ...position ), params.scale, (image ? image : PANOLENS.DataImage.Arrow) );
+        //         const infoSpot = pano.children[pano.children.length-1];
+        //         updateObjectParams(infoSpot, params);
+        //         // arrowInfospot.name = attrs.name? attrs.name : '';
+        //         if (params.hoverText) { // doesnt work in a link
+        //             infoSpot.addHoverText(params.hoverText);
+        //         }
+        //     }
+        // }
+        // self.createPosterSprite = function(pan, image = null, position, link = null, attrs = {} ) {
             
-            posterInfospot.animated = params.animated? true : false;
-            if (link) posterInfospot.link = link;
-            if (params.hoverText) {
-                posterInfospot.addHoverText(params.hoverText);
-            }
-            // If link we apply event to load panorama
-            if (posterInfospot.link) {
-                params.onClick = (event, postIS) => {
-                    const thePanorama = self.getPanoramaByName(postIS.link);
-                    if (thePanorama)
-                        self.viewer.setPanorama(thePanorama);
-                }
-            }
-            //set name, onclick listener
-            updateObjectParams(posterInfospot, params);
-            self.setObjectPos(posterInfospot, position);
+        //     const params = Object.assign( {
+        //         scale: 100
+        //     }, attrs );
+        //     var posterInfospot = new PANOLENS.Infospot(params.scale, image);
+            
+        //     posterInfospot.animated = params.animated? true : false;
+        //     if (link) posterInfospot.link = link;
+        //     if (params.hoverText) {
+        //         posterInfospot.addHoverText(params.hoverText);
+        //     }
+        //     // If link we apply event to load panorama
+        //     if (posterInfospot.link) {
+        //         params.onClick = (event, postIS) => {
+        //             const thePanorama = self.getPanoramaByName(postIS.link);
+        //             if (thePanorama)
+        //                 self.viewer.setPanorama(thePanorama);
+        //         }
+        //     }
+        //     //set name, onclick listener
+        //     updateObjectParams(posterInfospot, params);
+        //     self.setObjectPos(posterInfospot, position);
 
-            pan.add(posterInfospot);
+        //     pan.add(posterInfospot);
 
-            // more attrs
+        //     // more attrs
 
-            // const materialAttrs = {color: 0xffff00, side: THREE.DoubleSide};
-            // if (image) materialAttrs.map = new THREE.TextureLoader().load( image );
-            // const plane = new THREE.Mesh( new THREE.PlaneBufferGeometry( 10, 20, 3 ), new THREE.MeshBasicMaterial( materialAttrs ) );
-            // plane.position.z = 50;
-            // // we useew  a partent gizmo inn the centerof the scene to rotate respect the scene
-            // var planeGizmo = new THREE.Mesh( new THREE.Geometry() ); 
-            // planeGizmo.name = 'poster_'+self.getScene().posters.length+'_pivot';
-            // self.getScene().posters.push(planeGizmo);
-            // planeGizmo.add(plane);
-            // self.getScene().sphereMesh.add( planeGizmo );
-        }
+        //     // const materialAttrs = {color: 0xffff00, side: THREE.DoubleSide};
+        //     // if (image) materialAttrs.map = new THREE.TextureLoader().load( image );
+        //     // const plane = new THREE.Mesh( new THREE.PlaneBufferGeometry( 10, 20, 3 ), new THREE.MeshBasicMaterial( materialAttrs ) );
+        //     // plane.position.z = 50;
+        //     // // we useew  a partent gizmo inn the centerof the scene to rotate respect the scene
+        //     // var planeGizmo = new THREE.Mesh( new THREE.Geometry() ); 
+        //     // planeGizmo.name = 'poster_'+self.getScene().posters.length+'_pivot';
+        //     // self.getScene().posters.push(planeGizmo);
+        //     // planeGizmo.add(plane);
+        //     // self.getScene().sphereMesh.add( planeGizmo );
+        // }
         
         self.createPoster = function(panorama, image, position, attrs = {} ) {
             const params = Object.assign( {
@@ -180,7 +179,7 @@
                 animatedMap: 0, // if 2 or more, the number is the set of frame sin the sprite texture
                 animatedMapSpeed: 25
             }, attrs );
-
+            
             const loader = new THREE.TextureLoader();
             
             // we use the texture image to create the dimentions of the poster.
@@ -226,6 +225,18 @@
                 mesh.name = (params.sprite? 'sprite_' : 'poster_') + self.viewer.panorama.children.length;
                 
 
+                if (params.link) { // update Object Params() will convert this into the onvlick event
+                    mesh.link = params.link; 
+                    params.onClick = (event, postIS) => {
+                        self.changePano(postIS.link);
+                    }
+                }
+                if (params.modal) {
+                    params.onClick = (event, postIS) => {
+                        new self.Modal('the title', '<iframe src="resources/pdf.pdf"></iframe>');
+                    }
+                }
+
                 // this works
                 if (params.hoverText)  {
                     // create the tooltip.
@@ -236,7 +247,8 @@
                 }
                 // add onclick, hover
                 updateObjectParams(mesh, params); // set click and other events
-                self.viewer.panorama.add(mesh); 
+                panorama.add(mesh);
+                mesh.visible = (panorama == self.viewer.panorama); // hide if not this pano
                 
                 mesh.alwaysLookatCamera = params.alwaysLookatCamera === false? false : true;
                 self.setObjectPos(mesh, position);
@@ -280,7 +292,8 @@
                 // obj.scale.set( new THREE.Vector3(params.scale,params.scale,params.scale) ); 
                 updateObjectParams(textMesh, params);                
                 //updateParentParams(panorama, textMesh, position);
-                self.viewer.panorama.add(textMesh);
+                panorama.add(textMesh);
+                textMesh.visible = (panorama == self.viewer.panorama);
                 
                 textMesh.alwaysLookatCamera = params.alwaysLookatCamera === false? false : true;
                 self.setObjectPos(textMesh, position);
@@ -335,7 +348,8 @@
                     
                 } else console.warn('could not create text 2d ', text);
             } else {
-                self.viewer.panorama.add(textPlane);
+                panorama.add(textPlane);
+                textPlane.visible = (panorama == self.viewer.panorama);
 
                 textPlane.alwaysLookatCamera = params.alwaysLookatCamera === false? false : true;
                 self.setObjectPos(textPlane, params.pos);
@@ -351,6 +365,15 @@
             
         }
 
+        function validURL(str) {
+            var pattern = new RegExp('^(https?:\\/\\/)?'+ // protocol
+              '((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.)+[a-z]{2,}|'+ // domain name
+              '((\\d{1,3}\\.){3}\\d{1,3}))'+ // OR ip (v4) address
+              '(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*'+ // port and path
+              '(\\?[;&a-z\\d%_.~+=-]*)?'+ // query string
+              '(\\#[-a-z\\d_]*)?$','i'); // fragment locator
+            return !!pattern.test(str);
+        }
 
         // called with var modal = new self.Modal('the title', 'https://the/pdf.pdf');
         self.Modal = function(titleText = 'TITLE', domEl = 'test', ops = {}){
@@ -425,9 +448,9 @@
             if (params.callback)
                 params.callback(object);
             
+            if (params.animated) object.animated = true;
             if (params.animated === 'always') setTimeout( () => glowAnimation( object, 1000 ), 500 );
             if (params.animated === 'hover' && object.constructor.name !== 'Infospot') {
-                object.animated = true;
                 object.addEventListener( 'hoverenter', (event) => glowAnimationForward(object, 200).start() );
                 object.addEventListener( 'hoverleave', (event) => glowAnimationBack(object, 200).start() );
             }
@@ -501,6 +524,13 @@
          }
 
         // helpers
+        self.changePano = (pano) => {
+            var newPano = (typeof(pano) === 'string')? newPano = self.getPanoramaByName(pano) : pano;
+            if (!pano) return;
+            self.viewer.panorama.children.forEach( c => c.visible = false );
+            self.viewer.setPanorama(newPano);
+            newPano.children.forEach( ob => ob.visible = true );
+        }
         self.getPanoramaByName = (name) => self.viewer.getScene().children.find( sc => sc.name === name );
         self.getObjectByName = (name, pano) => (pano?? self.viewer.panorama).getObjectByName(name) ;
         self.getObjects = () =>  self.viewer.panorama.children.filter( obj => obj.type && obj.type.startsWith('pl_') ) ;
@@ -511,12 +541,19 @@
                                         while ( i++ < intersects.length )
                                             if (intersects[i].object.name === 'invisibleWorld') {
                                                 const point = intersects[i].point.clone();
-                                                const world = self.viewer.panorama.getWorldPosition( THREE.Vector3() );
+                                                const world = self.viewer.panorama.getWorldPosition( new THREE.Vector3(0,0,0) );
                                                 point.sub( world );
                                                 const currentMP = [ point.x.toFixed(2)/2, point.y.toFixed(2)/2, point.z.toFixed(2)/2 ];
                                                 return currentMP;
                                             }
                                     }
+        self.getCameraAngle = function(measure='rad') { // or deg
+            const v = self.viewer.camera.getWorldDirection( new THREE.Vector3(0,0,1) );
+            var rad = Math.atan2(v.x, v.z); // In radians
+            if (measure === 'deg') return Math.round(THREE.Math.radToDeg(rad));
+            return rad;            
+        }
+                                    
 
         // create transparent world. When we use the helper to grab coordenates on click, this will give us the depth
         const createInvisibleWorld = function(pano, attrs = {}) {

@@ -5,7 +5,8 @@ html, body {
 }
 
 #posterlens-container {
-    height: 500px !important;
+    height: 700px;
+    margin-top: 30px !important;
 }
 #posterlens-container canvas {
     height: 100% !important;
@@ -23,6 +24,7 @@ html, body {
 }
 .pl_modal-inner {
     display: flex;
+    height: calc( 100vh - 100px );
     flex-direction: column;
     margin: auto;
     max-width: 1200px;
@@ -31,10 +33,16 @@ html, body {
     border-radius: 10px;
     box-shadow: 5px 5px 5px black;
 }
+.pl_modal-body { height: 100%; } 
+.pl_modal-body iframe {
+    width: 100%;
+    max-width: 2000px;
+    height: 100%;
+} 
 .pl_modal-title {
 
 }
-.modal {
+/*.modal {
     transition: opacity 0.5s linear;
     display: none;
     opacity: 0;
@@ -52,7 +60,7 @@ html, body {
     width: 100%;
     max-width: 2000px;
     height: 100%;
-}
+} */
 
 
 .pl_tooltip {
