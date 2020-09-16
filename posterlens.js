@@ -1,6 +1,6 @@
 /*
  * Posterlens
- * Version 1.0
+ * Version 1.1
  * https://www.cobianzo.com/
  * 
  * Depends on: THREE.js, PANOLENS.js
@@ -74,7 +74,13 @@
 
             });
             
-            
+            // Check whether control button is pressed. I might be useful
+            document.addEventListener( 'keydown' ,function(event) {
+                if (event.which == "17") self.controlIsPressed = true;
+            });
+            document.addEventListener( 'keyup' ,function(event) {
+                self.controlIsPressed = false;
+            });
 
 
             // for debuggins. Use chrome extension three.js inspector.
@@ -189,7 +195,7 @@
                 const alphaMap = params.alpha? loader.load( params.alpha ) : null;
                 let materialAttrs = {color: 0xffffff, side: THREE.DoubleSide, map: texture1, 
                     alphaMap: alphaMap,
-                    transparent: alphaMap || ( params.animatedMap > 1 ) || (image.slice(-3) === 'png') ? true : false,
+                    transparent: alphaMap || params.transparent || ( params.animatedMap > 1 ) || (image.slice(-3) === 'png') ? true : false,
                     depthTest: alphaMap? false : true,
                 };
                 
@@ -207,6 +213,7 @@
                     mesh = new THREE.Mesh( geometry, material2 );
                 }
 
+                // if sprite map for animation
                 if (params.animatedMap > 1) {
                     texture1.renderCount = 0;
                     texture1.repeat =  { x: 1/params.animatedMap, y: 1 }
@@ -454,6 +461,17 @@
                 object.addEventListener( 'hoverenter', (event) => glowAnimationForward(object, 200).start() );
                 object.addEventListener( 'hoverleave', (event) => glowAnimationBack(object, 200).start() );
             }
+
+            if (params.opacity) {
+                window.todelete = object;
+                object.material.transparent = true;
+                object.material.opacity = params.opacity;
+                object.material.needsUpdate = true;
+                object.tweenOpacityEnter = new TWEEN.Tween(object.material).to({ opacity : 1 });
+                object.tweenOpacityOut = new TWEEN.Tween(object.material).to({ opacity : params.opacity });
+                object.addEventListener( 'hoverenter', (event) => ()=> alert() );
+                object.addEventListener( 'hoverleave', (event) => ()=>object.tweenOpacityOut(object, 200).start() );
+            }
         }
 
         // not in use anymore TODELETE
@@ -539,7 +557,7 @@
                                         if ( intersects.length <= 0 ) return;
                                         let i = 0;
                                         while ( i++ < intersects.length )
-                                            if (intersects[i].object.name === 'invisibleWorld') {
+                                            if (intersects[i]?.object.name === 'invisibleWorld') {
                                                 const point = intersects[i].point.clone();
                                                 const world = self.viewer.panorama.getWorldPosition( new THREE.Vector3(0,0,0) );
                                                 point.sub( world );
@@ -550,7 +568,7 @@
         self.getCameraAngle = function(measure='rad') { // or deg
             const v = self.viewer.camera.getWorldDirection( new THREE.Vector3(0,0,1) );
             var rad = Math.atan2(v.x, v.z); // In radians
-            if (measure === 'deg') return Math.round(THREE.Math.radToDeg(rad));
+            if (measure === 'deg') return (THREE.Math.radToDeg(rad));
             return rad;            
         }
                                     
