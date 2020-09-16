@@ -55,6 +55,7 @@
             self.o.worlds.forEach( (scParams, i) => {
                 const pano = new PANOLENS.ImagePanorama( scParams.panorama );
                 pano.name = scParams.name? scParams.name : 'World_' + i;
+                pano.addEventListener('load', () => { console.log('🍞 loaded panorama '+pano.name) })
                 self.viewer.add( pano );
                 createInvisibleWorld(pano, scParams.innerPanorama );
                 if (scParams.outerPanorama) {
@@ -76,10 +77,14 @@
             
             // Check whether control button is pressed. I might be useful
             document.addEventListener( 'keydown' ,function(event) {
-                if (event.which == "17") self.controlIsPressed = true;
+                if (event.key === "Control") self.controlIsPressed = true;
+                if (event.key === "Shift") self.shiftIsPressed = true;
+                console.log('🎛 pressed control ');
             });
             document.addEventListener( 'keyup' ,function(event) {
+                if (self.controlIsPressed) console.log('🎛 released control ');
                 self.controlIsPressed = false;
+                self.shiftIsPressed = false;
             });
 
 
@@ -235,13 +240,14 @@
                 if (params.link) { // update Object Params() will convert this into the onvlick event
                     mesh.link = params.link; 
                     params.onClick = (event, postIS) => {
-                        if (self.viewer.editMode && !self.controlIsPressed) return;
+                        //if (self.viewer.editMode && !self.shiftIsPressed) return;
+                        alert('va');
                         self.changePano(postIS.link);
                     }
                 }
                 if (params.modal) {
                     params.onClick = (event, postIS) => {
-                        if (self.viewer.editMode && !self.controlIsPressed) return;
+                        if (self.viewer.editMode && !self.shiftIsPressed) return;
                         new self.Modal('the title', '<iframe src="resources/pdf.pdf"></iframe>');
                     }
                 }
@@ -261,6 +267,7 @@
                 
                 mesh.alwaysLookatCamera = params.alwaysLookatCamera === false? false : true;
                 self.setObjectPos(mesh, position);
+                
                 self.setObjectRot(mesh, params.rot);
                 // updateParentParams(panorama, mesh, position);
 
@@ -277,9 +284,7 @@
             const params = Object.assign( {
                 scale: 0.3,
                 size: 200,
-                textColor: 0xfffbcb,
-                specular: 0xfff000,
-                emissive: 0xffffff,
+                emissive: 11513775, // this is the real text color
                 options: {},
                 fontFamily: 'assets/fonts/Century_Gothic_Regular.js' 
             }, attrs );
@@ -288,8 +293,6 @@
             
             loader.load( params.fontFamily, function ( font ) {
                 var mat = new THREE.MeshPhongMaterial({
-                    color: params.textColor,
-                    specular: params.specular,
                     shininess: 100,
                     emissive: params.emissive,
                     depthTest: 0, // with this 2 we show it always in front of the sphere world
@@ -506,7 +509,7 @@
                object.parent.scale.x = object.parent.scale.y = object.parent.scale.z = 1;
                object.parent.name = object.name + '_pivot';
             } else { 
-              //  if (object.name === 'a') debugger
+
                 if (object.alwaysLookatCamera) {
                     var theta = Math.atan2(position[0], position[2] );
                     object.rotation.y = theta + Math.PI;
@@ -516,8 +519,12 @@
             }
         }
         self.setObjectRot = function(object, rotation) {
+            if (!rotation) return;
             if ( !object.alwaysLookatCamera ) { // set the rotation unless it it meant to be set with the position
                 if (rotation) object.rotation.set(...rotation);
+            } else {
+                object.rotation.x = rotation[0]? rotation[0] : 0;
+                object.rotation.z = rotation[2]? rotation[2] : 0;
             }
         }
 
@@ -608,6 +615,18 @@
             }
         }
 
+        // "ffffff" into {r:255, g:255, b: 255}
+        function hexToRgb(hex) {
+            var result = /^#?([a-fd]{2})([a-fd]{2})([a-fd]{2})$/i.exec(hex);
+            if(result){
+                var r= parseInt(result[1], 16);
+                var g= parseInt(result[2], 16);
+                var b= parseInt(result[3], 16);
+                return r+","+g+","+b;//return 23,14,45 -> reformat if needed 
+            } 
+            return null;
+        }
+
         // encapsulated fn to handle tooltip creation show and hide, positioning it over the object inthe viewer.
         const Tooltip = function( text = '', object, attrs = {} ) {
             const toolt   = document.createElement('div'); toolt.classList.add('pl_tooltip'); toolt.id = 'pl_tooltip-'+object.name;
@@ -641,6 +660,7 @@
                 var width = container.offsetWidth, height = container.offsetHeight;
                 var widthHalf = width / 2, heightHalf = height / 2;
                 const posMouse = self.getMouse3DPosition();
+                if (typeof posMouse !== 'object' && posMouse.length < 3) return;
                 var pos = new THREE.Vector3(...posMouse);
                 // var pos = object.position.clone();
                 pos.project(self.viewer.camera);
@@ -801,6 +821,7 @@ function stopGlowAnimation( object ) {
     })
 }
 const stopAllAnimations = (viewer, deleteAnimations = false) => viewer.panorama.children.forEach( obj => {
+            if (obj.type.substring(0,3) !== "pl_") return;
             stopGlowAnimation( obj );
             if (obj.animated) obj.animated = false;
             if (deleteAnimations) {
