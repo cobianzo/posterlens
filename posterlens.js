@@ -235,11 +235,13 @@
                 if (params.link) { // update Object Params() will convert this into the onvlick event
                     mesh.link = params.link; 
                     params.onClick = (event, postIS) => {
+                        if (self.viewer.editMode && !self.controlIsPressed) return;
                         self.changePano(postIS.link);
                     }
                 }
                 if (params.modal) {
                     params.onClick = (event, postIS) => {
+                        if (self.viewer.editMode && !self.controlIsPressed) return;
                         new self.Modal('the title', '<iframe src="resources/pdf.pdf"></iframe>');
                     }
                 }
