@@ -214,7 +214,7 @@
                     mesh.scale.set(100, 100 * ratio, 3);
                 } else {
                     const material2 = new THREE.MeshBasicMaterial( materialAttrs );
-                    const geometry = new THREE.PlaneBufferGeometry( 10, 10 * ratio, 3 );
+                    const geometry =  !params.posterSphere? new THREE.PlaneBufferGeometry( 10, 10 * ratio, 3 ) : new THREE.SphereGeometry( 10, 32, 32 );
                     mesh = new THREE.Mesh( geometry, material2 );
                 }
 
