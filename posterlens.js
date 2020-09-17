@@ -250,12 +250,14 @@
                 panorama.add(mesh);
                 mesh.visible = (panorama == self.viewer.panorama); // hide if not this pano
                 
-                mesh.alwaysLookatCamera = params.alwaysLookatCamera === false? false : true;
+                mesh.alwaysLookatCamera = (params.alwaysLookatCamera === false)? false : true;
                 self.setObjectPos(mesh, position);
                 
                 self.setObjectRot(mesh, params.rot);
-                // updateParentParams(panorama, mesh, position);
 
+                if (params.sprite)
+                mesh.scale.set(params.scale,params.scale * ratio,params.scale);
+                else
                 mesh.scale.set(params.scale,params.scale,params.scale);
 
                 
