@@ -5,8 +5,8 @@ html, body {
 }
 
 #posterlens-container {
-    height: 700px;
-    margin-top: 30px !important;
+    height: 600px;
+    margin-top: 10px !important;
 }
 #posterlens-container canvas {
     height: 100% !important;

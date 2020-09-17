@@ -116,7 +116,7 @@
                 case 'text-2d-sprite': // uses Canvas, THREE.Sprite
                     self.createText2D( pano, params.text, params.pos, Object.assign(params, {sprite: true}) );
                 break;
-                case 'poster3d':  //  uses THREE.PlaneGeometry plane mesh
+                case 'poster3d':  //  uses THREE.PlaneGeometry plane mesh (or Sprite if sprite: true)
                 default:
                     self.createPoster( pano, params.image, params.pos, params );
                 break;
@@ -236,22 +236,6 @@
 
                 mesh.name = (params.sprite? 'sprite_' : 'poster_') + self.viewer.panorama.children.length;
                 
-
-                if (params.link) { // update Object Params() will convert this into the onvlick event
-                    mesh.link = params.link; 
-                    params.onClick = (event, postIS) => {
-                        //if (self.viewer.editMode && !self.shiftIsPressed) return;
-                        alert('va');
-                        self.changePano(postIS.link);
-                    }
-                }
-                if (params.modal) {
-                    params.onClick = (event, postIS) => {
-                        if (self.viewer.editMode && !self.shiftIsPressed) return;
-                        new self.Modal('the title', '<iframe src="resources/pdf.pdf"></iframe>');
-                    }
-                }
-
                 // this works
                 if (params.hoverText)  {
                     // create the tooltip.
@@ -262,6 +246,7 @@
                 }
                 // add onclick, hover
                 updateObjectParams(mesh, params); // set click and other events
+
                 panorama.add(mesh);
                 mesh.visible = (panorama == self.viewer.panorama); // hide if not this pano
                 
@@ -351,6 +336,7 @@
             }
             
             updateObjectParams(textPlane, params);
+
             if (attachedObject) { // never used, needs testing
                 const parent = self.getObjectByName(position);
                 if (parent) {
@@ -362,13 +348,11 @@
             } else {
                 panorama.add(textPlane);
                 textPlane.visible = (panorama == self.viewer.panorama);
-
                 textPlane.alwaysLookatCamera = params.alwaysLookatCamera === false? false : true;
                 self.setObjectPos(textPlane, params.pos);
                 self.setObjectRot(textPlane, params.rot);
                 // updateParentParams(panorama, textPlane, position);
             }
-            
             if (params.sprite) {
                 textPlane.scale.set(100, 100 * ratio, 3);
             } else {
@@ -448,6 +432,20 @@
             object.name = params.name?? 'poster_'+Math.floor(Math.random() * (10000)); ;
             
             if (params.type === 'link') return; // this type is native from PANOLENs so if we want to add events we should use its methods.
+
+            // preset the onclick action depending on params .link and .modal
+            if (params.link) {
+                object.link = params.link; 
+                params.onClick = (event, postIS) => {
+                    self.changePano(postIS.link);
+                }
+            }
+            if (params.modal) {
+                params.onClick = (event, postIS) => {
+                    if (self.viewer.editMode && !self.shiftIsPressed) return;
+                    new self.Modal('the title', '<iframe src="resources/pdf.pdf"></iframe>');
+                }
+            }
 
             if (params.onClick) {
                 object._click = (event) => { if (self.viewer.editMode) return; params.onClick(event, object); }; // so i can access to it, unbind it and rebind it. NOTE:it didnt work!
@@ -726,10 +724,12 @@ const CanvasForTexture = function(text = '', attrs = {}) {
 
     const init = function(text, params) {
 
-        
+        const textcolor = typeof params.color === 'number'?  `#${params.color.toString(16)}` : params.color;
+        // console.log('COOOLOR,🖍',params.color);
+        // alert(params.name+'na'+params.color+'me:'+textcolor)
         const contextParams = {
             font: params.fontWeight+' '+params.size+"px "+params.fontFamily,
-            fillStyle: params.color,
+            fillStyle: textcolor,
         }
         // create a canvas element, just to calculate the lines and therefore the height.
         var canvas1 = document.createElement('canvas');
@@ -749,7 +749,10 @@ const CanvasForTexture = function(text = '', attrs = {}) {
         // canvas1.style.padding = (params.size/4)+"px "+(params.size/4)+"px "+(params.size/2)+"px "+(params.size/4)+"px";
         context1 = canvas1.getContext('2d');
         context1 = Object.assign(context1, contextParams);
-
+        // for debugging: 
+        // canvas1.classList.add('demo-canvas');
+        // canvas1.addEventListener('click', (e) => canvas1.remove());
+        // document.body.prepend(canvas1);
         // write line by line
         for (var i = 0; i<lines.length; i++) {
             
