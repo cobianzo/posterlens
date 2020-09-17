@@ -214,7 +214,7 @@
                     mesh.scale.set(100, 100 * ratio, 3);
                 } else {
                     const material2 = new THREE.MeshBasicMaterial( materialAttrs );
-                    const geometry = new THREE.PlaneBufferGeometry( 10, 10 * ratio, 3 );
+                    const geometry = new params.sphere? new THREE.SphereGeometry( 5, 32, 32 ) : THREE.PlaneBufferGeometry( 10, 10 * ratio, 3 );
                     mesh = new THREE.Mesh( geometry, material2 );
                 }
 
@@ -495,18 +495,6 @@
             })
         }
 
-        // not in use anymore TODELETE
-        const updateParentParams = function(panorama, object, position) {
-                // we create a parent to orbit it
-                object.positionByParentRotation = true; // flag used in setObjPos
-                
-                var pivotParent = new THREE.Mesh( new THREE.PlaneBufferGeometry( 1, 1, 1 ), new THREE.MeshBasicMaterial( { color: 0xffff00 , visible: false} ) );
-                pivotParent.parentPivot = true;
-                pivotParent.position.y = OFFSET_Y_PARENT_PIVOT;
-                panorama.add( pivotParent );
-                pivotParent.add( object );
-                self.setObjectPos(object, position);
-        }
         self.setObjectPos = function(object, position) { // public fn
             // This one is not in use anymore, but it works. Now we use alwaysLookatCamera
             if (object.positionByParentRotation) { 
