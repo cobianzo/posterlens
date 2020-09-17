@@ -477,6 +477,22 @@
                 object.addEventListener( 'hoverenter', (event) => ()=> alert() );
                 object.addEventListener( 'hoverleave', (event) => ()=>object.tweenOpacityOut(object, 200).start() );
             }
+
+            // nice animation that make the object spin
+            let rotationAxises = [];  // store the params to loop the same funcions on every axis.
+            object.rotationAxis = {}; // temporal var to clone its value into the object rotation axis.
+            object.RotationAnimation = {}; // the tween object for every axis
+            if (params.rotationX) rotationAxises.push( { axis: 'x', duration: params.rotationX } );
+            if (params.rotationY) rotationAxises.push( { axis: 'y', duration: params.rotationY } );
+            if (params.rotationZ) rotationAxises.push( { axis: 'z', duration: params.rotationZ } );
+            rotationAxises.forEach( rotParams => {
+                object.rotationAxis[rotParams.axis] = { [rotParams.axis] : 0 };  // init to { x : 0 }
+                object.RotationAnimation[rotParams.axis] = new TWEEN.Tween( object.rotationAxis[rotParams.axis] ).to( { [rotParams.axis]: 2*Math.PI }, rotParams.duration)
+                                                .onUpdate(()=> { if (params.sprite && rotParams.axis==='z') object.material.rotation = object.rotationAxis[rotParams.axis].z; // a sprite cant rotate butits material can
+                                                                    else object.rotation[rotParams.axis] = object.rotationAxis[rotParams.axis][rotParams.axis];
+                                                                }) .repeat(Infinity);
+                object.RotationAnimation[rotParams.axis].start();
+            })
         }
 
         // not in use anymore TODELETE
