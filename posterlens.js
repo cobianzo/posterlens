@@ -486,6 +486,7 @@
             if (params.rotationY) rotationAxises.push( { axis: 'y', duration: params.rotationY } );
             if (params.rotationZ) rotationAxises.push( { axis: 'z', duration: params.rotationZ } );
             rotationAxises.forEach( rotParams => {
+                object.animated = true;
                 object.rotationAxis[rotParams.axis] = { [rotParams.axis] : 0 };  // init to { x : 0 }
                 object.RotationAnimation[rotParams.axis] = new TWEEN.Tween( object.rotationAxis[rotParams.axis] ).to( { [rotParams.axis]: 2*Math.PI }, rotParams.duration)
                                                 .onUpdate(()=> { if (params.sprite && rotParams.axis==='z') object.material.rotation = object.rotationAxis[rotParams.axis].z; // a sprite cant rotate butits material can
@@ -848,6 +849,12 @@ const stopAllAnimations = (viewer, deleteAnimations = false) => viewer.panorama.
             if (deleteAnimations) {
                 if (obj.scaleUpAnimation) obj.scaleUpAnimation = { start: ()=>{}, stop: ()=>{}}
                 if (obj.scaleDownAnimation) obj.scaleDownAnimation = { start: ()=>{}, stop: ()=>{}}
+            }
+            // stop rotation animation
+            if (object.RotationAnimation) {
+                Object.keys(object.RotationAnimation).forEach( k => {
+                    if (object.RotationAnimation[k]) object.RotationAnimation[k].stop();
+                });
             }
     });
 
