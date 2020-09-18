@@ -56,6 +56,12 @@
                 const pano = new PANOLENS.ImagePanorama( scParams.panorama );
                 pano.name = scParams.name? scParams.name : 'World_' + i;
                 self.viewer.add( pano );
+                pano.addEventListener('load', () => { 
+                    console.log('🍞 loaded panorama '+pano.name);
+                    if (typeof runPopupAnimationsFrameCallback === 'function')
+                        runPopupAnimationsFrameCallback(self);
+                    else console.log('🍞 NO ANIMATION POPUP ');
+                })
                 createInvisibleWorld(pano, scParams.innerPanorama );
                 if (scParams.outerPanorama) {
                     createInvisibleWorld(pano, Object.assign({radius: 1000, name: 'outerWorld'}, scParams.outerPanorama) );
@@ -70,6 +76,16 @@
                     sc.hotspots.forEach( (ht,i) => {
                             if (ht.alwaysLookatCamera === "false") ht.alwaysLookatCamera = false; // fix possible bug on this specific field.
                             self.createNewObjectFromParams(pano, ht);
+
+                            // manage animation popup when in camera. Then the updateCallBack takes control of it by monitoring camera angle
+                            if (ht.popupWhenVisible) {
+                                pano.objectsToPopupWhenVisible = !pano.objectsToPopupWhenVisible? {} : pano.objectsToPopupWhenVisible;                                const rad = Math.atan2(parseFloat(ht.pos[0]), parseFloat(ht.pos[2])); // In radians, angle from coord x and z
+                                const deg = parseInt(THREE.Math.radToDeg(rad) * 100) / 100;
+                                let min = deg - 50;  if (min < -180) min = 180 + (min + 180); // if sub -178 - 50 ==> 132
+                                let max = deg + 50;  if (max > 180) max =  -360 + max;
+                                // if (min>max) [min, max] = [max, min];
+                                pano.objectsToPopupWhenVisible[ht.name] = [min,max, parseInt(ht.popupWhenVisible)]; // min angle, max angle (degrees, 0 > -180==180 > 0 ), duration
+                            }
                     });
 
             });
@@ -590,8 +606,9 @@
                                                 return currentMP;
                                             }
                                     }
-        self.getCameraAngle = function(measure='rad') { // or deg
-            const v = self.viewer.camera.getWorldDirection( new THREE.Vector3(0,0,1) );
+        self.getCameraDirection = function(measure='rad') { // or deg, or lookatPoint
+            const v = self.viewer.camera.getWorldDirection(new THREE.Vector3(0,0,1)).normalize().multiplyScalar(500);;
+            if (measure === 'lookatPoint') return ([ Math.round(v.x), Math.round(v.y), Math.round(v.z) ]);
             var rad = Math.atan2(v.x, v.z); // In radians
             if (measure === 'deg') return (THREE.Math.radToDeg(rad));
             return rad;            
@@ -809,7 +826,12 @@ const CanvasForTexture = function(text = '', attrs = {}) {
 
 }
 
+
+
+
 // Animations plugin
+
+// creates Both Glow Forwacd and Glow Back animations, accessible from the object. Returns the Tween animation.
 function glowAnimation( object, duration = 200 ) { 
     glowAnimationForward(object, duration).start();
     glowAnimationBack(object, duration);
@@ -857,3 +879,77 @@ const stopAllAnimations = (viewer, deleteAnimations = false) => viewer.panorama.
             }
     });
 
+// returns TWEEN animation
+const popupAnimation = function(object, duration = 3000) {
+    if (!object) return;
+    object.originalPositionY = object.position.y * 1;
+    object.position.y = 500;
+    object.proxyPosition = { y : object.position.y };
+    return new TWEEN.Tween( object.proxyPosition )
+                .to( { y: object.originalPositionY }, typeof duration === 'number'? duration : 3000)
+                .onUpdate( ()=> object.position.y = object.proxyPosition.y )
+                .easing( TWEEN.Easing.Elastic.Out )
+                .onComplete( ()=> {
+                    
+                } );
+}
+
+const runPopupAnimationsFrameCallback = function(pl) {
+
+    if (!pl || !pl.viewer) return;
+    if (!pl.viewer.panorama || !pl.viewer.panorama.objectsToPopupWhenVisible) return;
+
+    // init position of object off from the screen
+    Object.keys(pl.viewer.panorama.objectsToPopupWhenVisible).forEach( objectName => {
+        const object = pl.getObjectByName(objectName);
+        if (object) {
+            const duration = pl.viewer.panorama.objectsToPopupWhenVisible[objectName];
+            object.popupTween = popupAnimation(object, duration);
+        }
+    });
+
+    // apply frame watch
+    pl.viewer.addUpdateCallback( function() {
+        const currentLookAt = pl.getCameraDirection('deg'); // get curretn angle, then check every hotspot to see if they are close to it.
+        // objectsToPopupWhenVisible has been created from the option `popupWhenVisible: <duration>`
+        if (pl.viewer.panorama.objectsToPopupWhenVisible) // { objectname: [minAngle, maxAngle, duration], ... }
+          // check hotspot by hotspots if the current camera angle is between its radius of influence (+-50deg)
+          Object.keys(pl.viewer.panorama.objectsToPopupWhenVisible).forEach( objectName => {
+            if (!pl.viewer.panorama.objectsToPopupWhenVisible) { console.log('soculdn animate popup', objectName); return; }
+            const [min, max, baah] = pl.viewer.panorama.objectsToPopupWhenVisible[objectName];
+
+            if ( isBetweenAngles(currentLookAt, min, max) ) {
+              const object = pl.getObjectByName(objectName);
+              if (object && object.popupTween) object.popupTween.start().onComplete( () => { 
+                // once its' finished, we delete the object from the list of objects to watch.
+                if (pl.viewer.panorama.objectsToPopupWhenVisible) {
+                  delete pl.viewer.panorama.objectsToPopupWhenVisible[object.name];
+                  if ( Object.keys(pl.viewer.panorama.objectsToPopupWhenVisible).length === 0)
+                    delete pl.viewer.panorama.objectsToPopupWhenVisible;
+                }
+              });
+              
+            }
+          });
+        
+      });
+}
+
+// helper
+  // circle angles go from 0 to 180, the next degree is -180 then to -0. So this is diffcult to understand
+  const isBetweenAngles = function(angle, min, max) {
+    if ((min >= 0 && max >= 0) || (min <= 0 && max <= 0) ) { // min and max have the same sign
+      if ( angle > min && angle < max) return true;
+      return false;
+    }
+    if ((min >= 0 && max <= 0)) { // min positive, max negative
+      if (angle <= 0 && angle <= max) return true;
+      if (angle >= 0 && angle >= min) return true;
+      return false
+    }
+    if ((min <= 0 && max >= 0)) { // min negative, max positive
+      if (angle >= 0 && angle <= max) return true;
+      if (angle <= 0 && angle >= min) return true;
+    }
+    return true;
+  }
