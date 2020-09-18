@@ -55,7 +55,6 @@
             self.o.worlds.forEach( (scParams, i) => {
                 const pano = new PANOLENS.ImagePanorama( scParams.panorama );
                 pano.name = scParams.name? scParams.name : 'World_' + i;
-                pano.addEventListener('load', () => { console.log('🍞 loaded panorama '+pano.name) })
                 self.viewer.add( pano );
                 createInvisibleWorld(pano, scParams.innerPanorama );
                 if (scParams.outerPanorama) {
@@ -851,9 +850,9 @@ const stopAllAnimations = (viewer, deleteAnimations = false) => viewer.panorama.
                 if (obj.scaleDownAnimation) obj.scaleDownAnimation = { start: ()=>{}, stop: ()=>{}}
             }
             // stop rotation animation
-            if (object.RotationAnimation) {
-                Object.keys(object.RotationAnimation).forEach( k => {
-                    if (object.RotationAnimation[k]) object.RotationAnimation[k].stop();
+            if (obj.RotationAnimation) {
+                Object.keys(obj.RotationAnimation).forEach( k => {
+                    if (obj.RotationAnimation[k]) obj.RotationAnimation[k].stop();
                 });
             }
     });
