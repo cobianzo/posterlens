@@ -10,6 +10,7 @@
   "license": "ISC",
   "dependencies": {
     "panolens": "^0.11.0",
+    "panolens-three": "^1.0.12",
     "three-css2drender": "^1.0.0",
     "three-css3drenderer": "^1.0.1",
     "three-dragcontrols": "^0.88.2",
