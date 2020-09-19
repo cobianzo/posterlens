@@ -5,54 +5,29 @@ Wrapper plugin over Panolens (which works over three.js).
 Allows you to create a panorama with interactive posters.  
 Can be extended to create more complex objects and behaviours.  
 
-TODO:
-use
-    object.matrixAutoUpdate  = false;
-    object.updateMatrix();
-for object that will not me updated (anything without animation I guess)
 ## Install
 ===
 npm install
 
 ## Dependencies:
 ===
-`        <script src="node_modules/three/build/three.min.js"></script>`  
-`       <script src="node_modules/panolens/build/panolens.min.js"></script>`  
+- three.js, using `import {THREE} from 'panolens-three';`
+- panolens.js using `import * as PANOLENS from 'panolens-three';`
+- posterlens/posterlens.css';
 
+- It uses TWEEN for animations. It's included in panolens and exposed to window (window.TWEEN)
 
 ## Usage:  
 ```
-        <div id="posterlens-container" style="width:100%; height:100%"></div>
-        <script>
+        import `posterlens/posterlens.css` in head or in you scss file. 
+            
+        <div id="posterlens-container" style="width:100%; height:100%"></div>  
+        <script>  
 
-            const pl = document.querySelector('#posterlens-container').posterlens({ 
-                scenes: [
-                    {
-                        panorama: 'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/2294472375_24a3b8ef46_o.jpg',
-                        name: 'Hall',
-                        hotspots: [
-                            {
-                                image: 'https://images-na.ssl-images-amazon.com/images/I/91nELBuo3kL._RI_SX200_.jpg',
-                                pos: [-5000.00, 311.34, -3086.92],
-                                scale: 1500,
-                                name: 'link-to-scene-1',
-                                link: 'Scene_1'
-                            }
-                        ]
-                    },
-                    {
-                        panorama: 'https://pchen66.github.io/Panolens/examples/asset/textures/equirectangular/field.jpg',
-                        hotspots: [
-                            {
-                              //  image: 'https://images-na.ssl-images-amazon.com/images/I/91nELBuo3kL._RI_SX200_.jpg',
-                                name: 'link-to-hall',
-                                pos: [-4000.00, 311.34, -3086.92],
-                                link: 'Hall'
-                            }
-                        ]
-                    }
-                ]
+            const pl = document.querySelector('#posterlens-container').posterlens({
+
             });
+            // This is just for debugging, to use the extension Three.js inspector.  
             setTimeout(() => {
                 window.scene = pl.viewer.getScene();
             }, 500);

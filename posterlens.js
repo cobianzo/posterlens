@@ -10,6 +10,12 @@
  *      Remove the 'link' type: it can be created by poster-sprite.
  *      Create the edit mode with buttons, with option to create any object.
  */
+
+import {THREE} from 'panolens-three';
+// import * as TT from '@tweenjs/tween.js'; // this didnt even work ok...
+import * as PANOLENS from 'panolens-three';
+const TWEEN = window.TWEEN; // TWEEN is created by Panolens already, this is just to avoif eslint to bother.
+
 ;(function(quindow) {
     
     "use strict";
@@ -49,7 +55,6 @@
                 self.viewer.OrbitControls.minAzimuthAngle = self.o.minAzimuthAngle;
             if (self.o.maxAzimuthAngle) 
                 self.viewer.OrbitControls.maxAzimuthAngle = self.o.maxAzimuthAngle;
-
 
             // init creation of every panorama in the scene. (at least 1)
             self.o.worlds.forEach( (scParams, i) => {
@@ -141,63 +146,6 @@
 
         // public functions.
 
-        // Create link is deprecated. User PosterSprite has the same and more features.
-        // self.createLink = function(pano, image, position, linkendPanName, attrs = {} ) {
-        //     const params = Object.assign( {
-        //         scale: 300
-        //     }, attrs );
-        //     const linkedPan = self.getPanoramaByName(linkendPanName);
-        //     if (linkedPan) {
-        //         //console.log('creating link: ', arguments)
-        //         pano.link(linkedPan , new THREE.Vector3( ...position ), params.scale, (image ? image : PANOLENS.DataImage.Arrow) );
-        //         const infoSpot = pano.children[pano.children.length-1];
-        //         updateObjectParams(infoSpot, params);
-        //         // arrowInfospot.name = attrs.name? attrs.name : '';
-        //         if (params.hoverText) { // doesnt work in a link
-        //             infoSpot.addHoverText(params.hoverText);
-        //         }
-        //     }
-        // }
-        // self.createPosterSprite = function(pan, image = null, position, link = null, attrs = {} ) {
-            
-        //     const params = Object.assign( {
-        //         scale: 100
-        //     }, attrs );
-        //     var posterInfospot = new PANOLENS.Infospot(params.scale, image);
-            
-        //     posterInfospot.animated = params.animated? true : false;
-        //     if (link) posterInfospot.link = link;
-        //     if (params.hoverText) {
-        //         posterInfospot.addHoverText(params.hoverText);
-        //     }
-        //     // If link we apply event to load panorama
-        //     if (posterInfospot.link) {
-        //         params.onClick = (event, postIS) => {
-        //             const thePanorama = self.getPanoramaByName(postIS.link);
-        //             if (thePanorama)
-        //                 self.viewer.setPanorama(thePanorama);
-        //         }
-        //     }
-        //     //set name, onclick listener
-        //     updateObjectParams(posterInfospot, params);
-        //     self.setObjectPos(posterInfospot, position);
-
-        //     pan.add(posterInfospot);
-
-        //     // more attrs
-
-        //     // const materialAttrs = {color: 0xffff00, side: THREE.DoubleSide};
-        //     // if (image) materialAttrs.map = new THREE.TextureLoader().load( image );
-        //     // const plane = new THREE.Mesh( new THREE.PlaneBufferGeometry( 10, 20, 3 ), new THREE.MeshBasicMaterial( materialAttrs ) );
-        //     // plane.position.z = 50;
-        //     // // we useew  a partent gizmo inn the centerof the scene to rotate respect the scene
-        //     // var planeGizmo = new THREE.Mesh( new THREE.Geometry() ); 
-        //     // planeGizmo.name = 'poster_'+self.getScene().posters.length+'_pivot';
-        //     // self.getScene().posters.push(planeGizmo);
-        //     // planeGizmo.add(plane);
-        //     // self.getScene().sphereMesh.add( planeGizmo );
-        // }
-        
         self.createPoster = function(panorama, image, position, attrs = {} ) {
             const params = Object.assign( {
                 scale: attrs.sprite? 100 : 10,
@@ -417,7 +365,7 @@
             body.appendChild(domElement);
             if (document.querySelector('.pl_modal-wrapper')) 
                 document.querySelector('.pl_modal-wrapper').remove();
-            pl.el.after(wrapper);
+            self.el.after(wrapper);
             const closeHandler = (e) => (e.keyCode === 27 ? this.modal.closeModalFn(e) : false );
             document.addEventListener('keydown', closeHandler, 'closeModal' ); // clicking ESC 
             
@@ -836,8 +784,10 @@ function glowAnimation( object, duration = 200 ) {
     glowAnimationForward(object, duration).start();
     glowAnimationBack(object, duration);
     // infitive loop with these chains
-    object.glowAnimation?.chain(object.glowAnimationBack);
-    object.glowAnimationBack?.chain(object.glowAnimation);
+    if (object.glowAnimation)
+    object.glowAnimation.chain(object.glowAnimationBack);
+    if (object.glowAnimationBack)
+        object.glowAnimationBack.chain(object.glowAnimation);
     return object.glowAnimation;
 }
     function glowAnimationForward(object, duration) {
@@ -863,7 +813,8 @@ function stopGlowAnimation( object ) {
         delete[object.glowAnimationBack];
     })
 }
-const stopAllAnimations = (viewer, deleteAnimations = false) => viewer.panorama.children.forEach( obj => {
+
+window.stopAllAnimations = (viewer, deleteAnimations = false) => viewer.panorama.children.forEach( obj => {
             if (obj.type.substring(0,3) !== "pl_") return;
             stopGlowAnimation( obj );
             if (obj.animated) obj.animated = false;
@@ -880,18 +831,19 @@ const stopAllAnimations = (viewer, deleteAnimations = false) => viewer.panorama.
     });
 
 // returns TWEEN animation
-const popupAnimation = function(object, duration = 3000) {
+window.popupAnimation = function(object, duration = 3000) {
     if (!object) return;
     object.originalPositionY = object.position.y * 1;
     object.position.y = 500;
     object.proxyPosition = { y : object.position.y };
-    return new TWEEN.Tween( object.proxyPosition )
+    const t = new TWEEN.Tween( object.proxyPosition )
                 .to( { y: object.originalPositionY }, typeof duration === 'number'? duration : 3000)
                 .onUpdate( ()=> object.position.y = object.proxyPosition.y )
                 .easing( TWEEN.Easing.Elastic.Out )
                 .onComplete( ()=> {
-                    
+                    console.log('popup animation finshed!');
                 } );
+    return t;
 }
 
 const runPopupAnimationsFrameCallback = function(pl) {
@@ -904,7 +856,7 @@ const runPopupAnimationsFrameCallback = function(pl) {
         const object = pl.getObjectByName(objectName);
         if (object) {
             const duration = pl.viewer.panorama.objectsToPopupWhenVisible[objectName];
-            object.popupTween = popupAnimation(object, duration);
+            object.popupTween = window.popupAnimation(object, duration);
         }
     });
 
