@@ -11,6 +11,7 @@
  *      Create the edit mode with buttons, with option to create any object.
  */
 
+ 
 import {THREE} from 'panolens-three';
 // import * as TT from '@tweenjs/tween.js'; // this didnt even work ok...
 import * as PANOLENS from 'panolens-three';
@@ -533,8 +534,9 @@ const TWEEN = window.TWEEN; // TWEEN is created by Panolens already, this is jus
         // helpers
         self.changePano = (pano) => {
             var newPano = (typeof(pano) === 'string')? newPano = self.getPanoramaByName(pano) : pano;
-            if (!pano) return;
-            self.viewer.panorama.children.forEach( c => c.visible = false );
+            if (typeof pano === 'number' && self.viewer.scene.children.length > pano) newPano = self.viewer.scene.children[pano];
+            if (!newPano) return;
+            self.viewer.panorama.children.forEach( c => c.visible = false ); // hide all hotspots not belonging to current pano
             self.viewer.setPanorama(newPano);
             newPano.children.forEach( ob => ob.visible = true );
         }
