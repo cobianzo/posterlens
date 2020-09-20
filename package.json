@@ -1,19 +1,49 @@
 {
   "name": "posterlens",
   "version": "1.0.0",
-  "description": "PANCOBIAN   ===",
-  "main": "posterlens.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+  "description": "Wrapper plugin over Panolens (which works over three.js).    Allows you to create a panorama with interactive posters.    Can be extended to create more complex objects and behaviours.  ",
+  "main": "posterlens.dev.js",
+  "directories": {
+    "example": "example"
   },
+  "dependencies": {
+    "panolens-three": "^1.0.12",
+    "three": "^0.120.1"
+  },
+  "devDependencies": {
+    "babel": "6.3.13",
+    "babel-core": "6.1.18",
+    "babel-eslint": "4.1.3",
+    "babel-loader": "6.1.0",
+    "babel-plugin-add-module-exports": "0.1.2",
+    "babel-preset-es2015": "^6.3.13",
+    "css-loader": "^4.3.0",
+    "eslint": "1.7.2",
+    "eslint-loader": "1.1.0",
+    "imports-loader": "^1.1.0",
+    "style-loader": "^1.2.1",
+    "webpack": "^4.44.2",
+    "webpack-cli": "^3.3.12"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "webpack",
+    "watch": "webpack --watch --info-verbosity verbose"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cobianzo/posterlens.git"
+  },
+  "keywords": [
+    "posterlens",
+    "panorama 360",
+    "panolens",
+    "three"
+  ],
   "author": "",
   "license": "ISC",
-  "dependencies": {
-    "panolens": "^0.11.0",
-    "panolens-three": "^1.0.12",
-    "three-css2drender": "^1.0.0",
-    "three-css3drenderer": "^1.0.1",
-    "three-dragcontrols": "^0.88.2",
-    "typeface-montserrat": "0.0.75"
-  }
+  "bugs": {
+    "url": "https://github.com/cobianzo/posterlens/issues"
+  },
+  "homepage": "https://github.com/cobianzo/posterlens#readme"
 }
