@@ -12,10 +12,13 @@
  */
 
  
-import {THREE} from 'panolens-three';
-// import * as TT from '@tweenjs/tween.js'; // this didnt even work ok...
-import * as PANOLENS from 'panolens-three';
-const TWEEN = window.TWEEN; // TWEEN is created by Panolens already, this is just to avoif eslint to bother.
+// import {THREE} from 'panolens-three';
+// // import * as TT from '@tweenjs/tween.js'; // this didnt even work ok...
+// import * as PANOLENS from 'panolens-three';
+// const TWEEN = window.TWEEN; // TWEEN is created by Panolens already, this is just to avoif eslint to bother.
+const THREE = window.THREE;
+const TWEEN = window.TWEEN;
+const PANOLENS = window.PANOLENS;
 
 ;(function(quindow) {
     
