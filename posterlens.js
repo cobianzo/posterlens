@@ -836,18 +836,24 @@ window.stopAllAnimations = (viewer, deleteAnimations = false) => viewer.panorama
     });
 
 // returns TWEEN animation
-window.popupAnimation = function(object, duration = 3000) {
+window.popupAnimation = function(object, duration = 200) {
+
     if (!object) return;
     object.originalPositionY = object.position.y * 1;
     object.position.y = 500;
     object.proxyPosition = { y : object.position.y };
     const t = new TWEEN.Tween( object.proxyPosition )
-                .to( { y: object.originalPositionY }, typeof duration === 'number'? duration : 3000)
+                .to( { y: object.originalPositionY }, typeof duration === 'number'? duration : 200 )
                 .onUpdate( ()=> object.position.y = object.proxyPosition.y )
-                .easing( TWEEN.Easing.Elastic.Out )
-                .onComplete( ()=> {
-                    console.log('popup animation finshed!');
-                } );
+                .onComplete( () => { 
+                    // once its' finished, we delete the object from the list of objects to watch.
+                    if (object.parent && object.parent.objectsToPopupWhenVisible) { // object.parent should be the panorama
+                      delete object.parent.objectsToPopupWhenVisible[object.name];
+                      if ( Object.keys(object.parent.objectsToPopupWhenVisible).length === 0)
+                        delete object.parent.objectsToPopupWhenVisible;
+                    }
+                  })
+                .easing( TWEEN.Easing.Bounce.InOut );
     return t;
 }
 
@@ -860,7 +866,7 @@ const runPopupAnimationsFrameCallback = function(pl) {
     Object.keys(pl.viewer.panorama.objectsToPopupWhenVisible).forEach( objectName => {
         const object = pl.getObjectByName(objectName);
         if (object) {
-            const duration = pl.viewer.panorama.objectsToPopupWhenVisible[objectName];
+            const [boh, buh, duration] = pl.viewer.panorama.objectsToPopupWhenVisible[objectName];
             object.popupTween = window.popupAnimation(object, duration);
         }
     });
@@ -877,14 +883,7 @@ const runPopupAnimationsFrameCallback = function(pl) {
 
             if ( isBetweenAngles(currentLookAt, min, max) ) {
               const object = pl.getObjectByName(objectName);
-              if (object && object.popupTween) object.popupTween.start().onComplete( () => { 
-                // once its' finished, we delete the object from the list of objects to watch.
-                if (pl.viewer.panorama.objectsToPopupWhenVisible) {
-                  delete pl.viewer.panorama.objectsToPopupWhenVisible[object.name];
-                  if ( Object.keys(pl.viewer.panorama.objectsToPopupWhenVisible).length === 0)
-                    delete pl.viewer.panorama.objectsToPopupWhenVisible;
-                }
-              });
+              if (object && object.popupTween) object.popupTween.start()
               
             }
           });
