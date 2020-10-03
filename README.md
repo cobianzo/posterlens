@@ -7,7 +7,9 @@ Can be extended to create more complex objects and behaviours.
 
 ## Install
 ===
-npm install
+> git clone git@github.com:cobianzo/posterlens.git
+> cd posterlens
+> npm install
 
 ## Dependencies:
 ===
