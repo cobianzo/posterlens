@@ -53,7 +53,7 @@ const PANOLENS = window.PANOLENS;
                             
             // PANOLENS call! (this creates the 'wooorld')
             self.viewer = new PANOLENS.Viewer( viewerOptions );
-
+            
             // updates that must come after panolens creation
             if (self.o.minAzimuthAngle) 
                 self.viewer.OrbitControls.minAzimuthAngle = self.o.minAzimuthAngle;
@@ -67,6 +67,7 @@ const PANOLENS = window.PANOLENS;
                 self.viewer.add( pano );
                 pano.addEventListener('load', () => { 
                     console.log('🍞 loaded panorama '+pano.name);
+                    if (i === 0 ) self.setupInitialCamera();
                     if (typeof runPopupAnimationsFrameCallback === 'function')
                         runPopupAnimationsFrameCallback(self);
                     else console.log('🍞 NO ANIMATION POPUP ');
@@ -97,9 +98,9 @@ const PANOLENS = window.PANOLENS;
                             }
                     });
 
-            });
-            
-            // Check whether control button is pressed. I might be useful
+            });          
+
+            // Check whether control button is pressed. I might be useful. Use: self.controlIsPressed
             document.addEventListener( 'keydown' ,function(event) {
                 if (event.key === "Control") self.controlIsPressed = true;
                 if (event.key === "Shift") self.shiftIsPressed = true;
@@ -238,7 +239,7 @@ const PANOLENS = window.PANOLENS;
             const params = Object.assign( {
                 scale: 0.3,
                 size: 200,
-                emissive: 11513775, // this is the real text color
+                emissive: "#ffff00", // this is the real text color
                 options: {},
                 fontFamily: 'assets/fonts/Century_Gothic_Regular.js' 
             }, attrs );
@@ -276,8 +277,8 @@ const PANOLENS = window.PANOLENS;
                 scale: 0.15,
                 size: 100,
                 width: 800,
-                color: 'white',
-                background: 'black',
+                color: '#ffffff',
+                background: '#000000',
                 sprite: false
             }, attrs );
 
@@ -287,7 +288,8 @@ const PANOLENS = window.PANOLENS;
             var canvas = new CanvasForTexture(text, params );
             
             // canvas contents will be used for a texture
-            var texture1 = new THREE.Texture(canvas);
+            // var texture1 = new THREE.Texture(canvas);
+            var texture1 = new THREE.CanvasTexture(canvas);
             texture1.needsUpdate = true;
             const materialParams = { color:0xffffff, side: THREE.DoubleSide, map: texture1 };            
             var material1 = params.sprite? new THREE.SpriteMaterial( materialParams  ) : new THREE.MeshBasicMaterial( materialParams );
@@ -542,6 +544,20 @@ const PANOLENS = window.PANOLENS;
             self.viewer.panorama.children.forEach( c => c.visible = false ); // hide all hotspots not belonging to current pano
             self.viewer.setPanorama(newPano);
             newPano.children.forEach( ob => ob.visible = true );
+
+            self.setupInitialCamera();
+        }
+        // set up lookat and fov for the camera. Used on every pano change.
+        self.setupInitialCamera = () => {
+            const currentPanoOptions = self.o.worlds.find( world => self.viewer.panorama.name === world.name );
+            if (!currentPanoOptions) return;
+            if (currentPanoOptions.initialLookAt) {
+                self.viewer.setControlCenter(new THREE.Vector3( ...currentPanoOptions.initialLookAt ));
+            }
+            if (currentPanoOptions.initialFov) {
+                self.viewer.camera.fov = currentPanoOptions.initialFov;
+                self.viewer.camera.updateProjectionMatrix();
+            }
         }
         self.getPanoramaByName = (name) => self.viewer.getScene().children.find( sc => sc.name === name );
         self.getObjectByName = (name, pano) => (pano?? self.viewer.panorama).getObjectByName(name) ;
@@ -712,36 +728,34 @@ const CanvasForTexture = function(text = '', attrs = {}) {
 
     const init = function(text, params) {
 
-        const textcolor = typeof params.color === 'number'?  `#${params.color.toString(16)}` : params.color;
         // console.log('COOOLOR,🖍',params.color);
         // alert(params.name+'na'+params.color+'me:'+textcolor)
-        const contextParams = {
-            font: params.fontWeight+' '+params.size+"px "+params.fontFamily,
-            fillStyle: textcolor,
-        }
+        contextParams = { font: params.fontWeight+' '+params.size+"px "+params.fontFamily }
+        
         // create a canvas element, just to calculate the lines and therefore the height.
-        var canvas1 = document.createElement('canvas');
-        canvas1.width = params.width;
-        var context1 = canvas1.getContext('2d');
+        var canvasDummy = document.createElement('canvas');
+        canvasDummy.width = params.width;
+        var context1 = canvasDummy.getContext('2d');
         context1 = Object.assign(context1, contextParams);
         var lines = getLines(context1, text, params.width);
         params.height = (lines.length + 1) * params.size ;
         
         // recreate it again so we can asign the lines 1 by one and the height from scratch
-        canvas1 = document.createElement('canvas');
+        var canvas1 = document.createElement('canvas');
         canvas1.width = params.width;
         canvas1.height = params.height;
-        canvas1.style.background = params.background;
-        canvas1.style.border = params.border;
         canvas1.style.display = 'none';
-        // canvas1.style.padding = (params.size/4)+"px "+(params.size/4)+"px "+(params.size/2)+"px "+(params.size/4)+"px";
+    
         context1 = canvas1.getContext('2d');
         context1 = Object.assign(context1, contextParams);
+        context1.fillStyle = params.background;
+        context1.fillRect(0, 0, params.width, params.height );
         // for debugging: 
         // canvas1.classList.add('demo-canvas');
         // canvas1.addEventListener('click', (e) => canvas1.remove());
         // document.body.prepend(canvas1);
         // write line by line
+        context1.fillStyle = params.color;
         for (var i = 0; i<lines.length; i++) {
             
             context1.fillText(lines[i], 
@@ -750,7 +764,8 @@ const CanvasForTexture = function(text = '', attrs = {}) {
         }
 
         // debug
-        document.body.appendChild(canvas1);
+        //document.body.appendChild(canvas1);
+        canvas1.remove();
         return canvas1;
     }
 
