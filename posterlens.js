@@ -414,8 +414,14 @@ const PANOLENS = window.PANOLENS;
             if (params.modal) {
                 params.onClick = (event, postIS) => {
                     if (self.viewer.editMode && !self.shiftIsPressed) return;
-                    new self.Modal('the title', '<iframe src="resources/pdf.pdf"></iframe>');
-                }
+                    
+                    if ( typeof params.modal === 'object' ) { // object is { title: "the title", body: "blabal" }
+                        // @TODO: not finished with variables
+                        new self.Modal(params.modal.title?? '', '<iframe src="resources/pdf.pdf"></iframe>');
+                    } else if (window.openModalCallback) {                        
+                        window.openModalCallback(params.modal);                        
+                    } else console.warn('modal functionality is not completed. Work around it!');
+                } 
             }
 
             if (params.onClick) {
@@ -544,6 +550,12 @@ const PANOLENS = window.PANOLENS;
             self.viewer.panorama.children.forEach( c => c.visible = false ); // hide all hotspots not belonging to current pano
             self.viewer.setPanorama(newPano);
             newPano.children.forEach( ob => ob.visible = true );
+            // if there are thumbnails with shortcuts to panos
+            const thumbnails = self.el.querySelectorAll('.pano-thumb');
+            if (thumbnails) {
+                self.el.querySelectorAll('.pano-thumb').forEach(el=>el.classList.remove('active')); 
+                self.el.querySelector('.pano-thumb[data-panoname="'+newPano.name+'"]').classList.add('active');
+            }
 
             self.setupInitialCamera();
         }
