@@ -104,7 +104,7 @@ const PANOLENS = window.PANOLENS;
             document.addEventListener( 'keydown' ,function(event) {
                 if (event.key === "Control") self.controlIsPressed = true;
                 if (event.key === "Shift") self.shiftIsPressed = true;
-                console.log('🎛 pressed control ');
+                console.log('🎛 pressed  '+event.key);
             });
             document.addEventListener( 'keyup' ,function(event) {
                 if (self.controlIsPressed) console.log('🎛 released control ');
@@ -239,7 +239,7 @@ const PANOLENS = window.PANOLENS;
             const params = Object.assign( {
                 scale: 0.3,
                 size: 200,
-                emissive: "#ffff00", // this is the real text color
+                emissive: "#ffffff", // this is the real text color (white)
                 options: {},
                 fontFamily: 'assets/fonts/Century_Gothic_Regular.js' 
             }, attrs );
@@ -354,6 +354,7 @@ const PANOLENS = window.PANOLENS;
             } else domElement = domEl;  
             var wrapper = document.createElement('div');
             wrapper.classList.add('pl_modal-wrapper');
+            if (ops.class) wrapper.classList.add(ops.class);
             var modal = document.createElement('div');
             modal.classList.add('pl_modal-inner');
             var title = document.createElement('div');
@@ -366,7 +367,8 @@ const PANOLENS = window.PANOLENS;
             wrapper.appendChild(modal);
             title.innerHTML = `<h1>${titleText}</h1>`;
             title.appendChild(close);
-            modal.appendChild(title);
+            if (titleText) modal.appendChild(title);
+            else modal.appendChild(close);
             modal.appendChild(body);
             body.appendChild(domElement);
             if (document.querySelector('.pl_modal-wrapper')) 
@@ -465,7 +467,7 @@ const PANOLENS = window.PANOLENS;
                 object.rotationAxis[rotParams.axis] = { [rotParams.axis] : 0 };  // init to { x : 0 }
                 object.RotationAnimation[rotParams.axis] = new TWEEN.Tween( object.rotationAxis[rotParams.axis] ).to( { [rotParams.axis]: 2*Math.PI }, rotParams.duration)
                                                 .onUpdate(()=> { if (params.sprite && rotParams.axis==='z') object.material.rotation = object.rotationAxis[rotParams.axis].z; // a sprite cant rotate butits material can
-                                                                    else object.rotation[rotParams.axis] = object.rotationAxis[rotParams.axis][rotParams.axis];
+                                                                    else object.rotation[rotParams.axis] = parseInt(object.rotationAxis[rotParams.axis][rotParams.axis]*1000)/1000;
                                                                 }) .repeat(Infinity);
                 object.RotationAnimation[rotParams.axis].start();
             })
@@ -503,8 +505,8 @@ const PANOLENS = window.PANOLENS;
             } else { 
 
                 if (object.alwaysLookatCamera) {
-                    var theta = Math.atan2(position[0], position[2] );
-                    object.rotation.y = theta + Math.PI;
+                    var theta = Math.atan2(position[0], position[2] ); // calculate angle of rotation to face to camera
+                    object.rotation.y = parseInt((theta + Math.PI)*1000)/1000; // 3 decimals
                 }
                 if (position.x) object.position.set( position ); // if we are passing a Vector
                 else object.position.set( ...position ); // if we are passing an array of 3 values
