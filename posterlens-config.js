@@ -2,7 +2,7 @@ var data = {
     "cameraFov": 80,
     "worlds": [
       {
-        "panorama": "assets/360pano.jpg",
+        "panorama": "assets/room360green.jpg",
         "name": "Hall",
         "innerPanorama": {
           "offset": [

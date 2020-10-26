@@ -33,15 +33,24 @@ html, body {
     border-radius: 10px;
     box-shadow: 5px 5px 5px black;
 }
-.pl_modal-body { height: 100%; } 
+.pl_modal-body { 
+    height: 100%; 
+    overflow: hidden;
+} 
 .pl_modal-body iframe {
     width: 100%;
     max-width: 2000px;
     height: 100%;
 } 
 .pl_modal-title {
-
+    position: relative;
 }
+.pl_modal-close {
+    position: absolute;
+    top: 15px;
+    right: 0;
+}
+
 /*.modal {
     transition: opacity 0.5s linear;
     display: none;

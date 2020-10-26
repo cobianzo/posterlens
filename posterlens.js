@@ -11,6 +11,8 @@
  *      Create the edit mode with buttons, with option to create any object.
  */
 
+// const { remove } = require("lodash");
+
  
 // import {THREE} from 'panolens-three';
 // // import * as TT from '@tweenjs/tween.js'; // this didnt even work ok...
@@ -43,7 +45,6 @@ const PANOLENS = window.PANOLENS;
         // <instance>.viewer.panorama : get the current panorama (it has attribute 'active' = true)
 
         self.init = function(options) {
-            
             self.o = Object.assign(self.o, options);
             
             let viewerOptions = { container: el, output: 'console', autoHideInfospot: false };
@@ -59,7 +60,7 @@ const PANOLENS = window.PANOLENS;
                 self.viewer.OrbitControls.minAzimuthAngle = self.o.minAzimuthAngle;
             if (self.o.maxAzimuthAngle) 
                 self.viewer.OrbitControls.maxAzimuthAngle = self.o.maxAzimuthAngle;
-
+            self.editMode = (window.plEditMode)? true : false;
             // init creation of every panorama in the scene. (at least 1)
             self.o.worlds.forEach( (scParams, i) => {
                 const pano = new PANOLENS.ImagePanorama( scParams.panorama );
@@ -104,10 +105,8 @@ const PANOLENS = window.PANOLENS;
             document.addEventListener( 'keydown' ,function(event) {
                 if (event.key === "Control") self.controlIsPressed = true;
                 if (event.key === "Shift") self.shiftIsPressed = true;
-                console.log('🎛 pressed  '+event.key);
             });
             document.addEventListener( 'keyup' ,function(event) {
-                if (self.controlIsPressed) console.log('🎛 released control ');
                 self.controlIsPressed = false;
                 self.shiftIsPressed = false;
             });
@@ -207,11 +206,17 @@ const PANOLENS = window.PANOLENS;
                 // this works
                 if (params.hoverText)  {
                     // create the tooltip.
-                    var tooltip = new Tooltip( params.hoverText, mesh, {});
+                    var tooltip = new Tooltip( params.hoverText, mesh, { class: params.hoverTextClass?? 'default-tooltip'  });
                     mesh.tooltip = tooltip; // to access to the methods.
-                    params.onHoverEnter = e => tooltip.show() ;
-                    params.onHoverLeave = e => tooltip.hide() ;
+                    params.onHoverEnter = e => { tooltip.show(); self.el.style.cursor='pointer'; };
+                    params.onHoverLeave = e => { tooltip.hide();  self.el.style.cursor='auto'; } ;
+                } else if (params.link || params.modal) { // change cursor on hover
+                    params.onHoverEnter = e => self.el.style.cursor='pointer';
+                    params.onHoverLeave = e => self.el.style.cursor='auto' ;
                 }
+                
+
+
                 // add onclick, hover
                 updateObjectParams(mesh, params); // set click and other events
 
@@ -385,6 +390,7 @@ const PANOLENS = window.PANOLENS;
                 const closeTween = new TWEEN.Tween( wrapper.style ).to( { opacity: 0 }, 200 ).onComplete(()=>{ // the animation doesnt work. Its css transition what works
                     wrapper.style.display = 'none';
                     options.onClose();
+                    this.modal.el.remove();
                     document.removeEventListener('keydown', closeHandler, 'closeModal' );
                 }).start();
             }
@@ -415,7 +421,7 @@ const PANOLENS = window.PANOLENS;
             }
             if (params.modal) {
                 params.onClick = (event, postIS) => {
-                    if (self.viewer.editMode && !self.shiftIsPressed) return;
+                    if (self.editMode && !self.shiftIsPressed) return;
                     
                     if ( typeof params.modal === 'object' ) { // object is { title: "the title", body: "blabal" }
                         // @TODO: not finished with variables
@@ -427,31 +433,32 @@ const PANOLENS = window.PANOLENS;
             }
 
             if (params.onClick) {
-                object._click = (event) => { if (self.viewer.editMode) return; params.onClick(event, object); }; // so i can access to it, unbind it and rebind it. NOTE:it didnt work!
+                object._click = (event) => { if (self.editMode) return; params.onClick(event, object); }; // so i can access to it, unbind it and rebind it. NOTE:it didnt work!
                 object.addEventListener( 'click', object._click, 'posterlens-handler', false );
             }
             if (params.onHoverEnter) 
                 object.addEventListener( 'hoverenter', (event) => params.onHoverEnter(event, object) );
             if (params.onHoverLeave)
                 object.addEventListener( 'hoverleave', (event) => params.onHoverLeave(event, object) );
-            if (params.callback)
-                params.callback(object);
+            if (params.creationCallback)
+                params.creationCallback(object);
             
-            if (params.animated) object.animated = true;
-            if (params.animated === 'always') setTimeout( () => glowAnimation( object, 1000 ), 500 );
-            if (params.animated === 'hover' && object.constructor.name !== 'Infospot') {
-                object.addEventListener( 'hoverenter', (event) => glowAnimationForward(object, 200).start() );
-                object.addEventListener( 'hoverleave', (event) => glowAnimationBack(object, 200).start() );
+            if (!self.editMode) {
+                if (params.animated) object.animated = true;
+                if (params.animated === 'always') setTimeout( () => glowAnimation( object, 1000 ), 500 );
+                if (params.animated === 'hover' && object.constructor.name !== 'Infospot') {
+                    object.addEventListener( 'hoverenter', (event) => glowAnimationForward(object, 200).start() );
+                    object.addEventListener( 'hoverleave', (event) => glowAnimationBack(object, 200).start() );
+                }
             }
 
             if (params.opacity) {
-                window.todelete = object;
                 object.material.transparent = true;
                 object.material.opacity = params.opacity;
                 object.material.needsUpdate = true;
                 object.tweenOpacityEnter = new TWEEN.Tween(object.material).to({ opacity : 1 });
                 object.tweenOpacityOut = new TWEEN.Tween(object.material).to({ opacity : params.opacity });
-                object.addEventListener( 'hoverenter', (event) => ()=> alert() );
+                object.addEventListener( 'hoverenter', (event) => ()=> alert('opacity TODO') );
                 object.addEventListener( 'hoverleave', (event) => ()=>object.tweenOpacityOut(object, 200).start() );
             }
 
@@ -545,7 +552,9 @@ const PANOLENS = window.PANOLENS;
          }
 
         // helpers
-        self.changePano = (pano) => {
+
+        // set a world panorama from options in viewer. pano can be the index of the panoramas, or the name of pano.
+        self.changePano = (pano, callbackFn = null) => {
             var newPano = (typeof(pano) === 'string')? newPano = self.getPanoramaByName(pano) : pano;
             if (typeof pano === 'number' && self.viewer.scene.children.length > pano) newPano = self.viewer.scene.children[pano];
             if (!newPano) return;
@@ -556,10 +565,11 @@ const PANOLENS = window.PANOLENS;
             const thumbnails = self.el.querySelectorAll('.pano-thumb');
             if (thumbnails) {
                 self.el.querySelectorAll('.pano-thumb').forEach(el=>el.classList.remove('active')); 
-                self.el.querySelector('.pano-thumb[data-panoname="'+newPano.name+'"]').classList.add('active');
+                self.el.querySelector('.pano-thumb[data-panoname="'+newPano.name+'"]')?.classList.add('active');
             }
 
             self.setupInitialCamera();
+            if (callbackFn) callbackFn(newPano);
         }
         // set up lookat and fov for the camera. Used on every pano change.
         self.setupInitialCamera = () => {
@@ -646,8 +656,9 @@ const PANOLENS = window.PANOLENS;
         // encapsulated fn to handle tooltip creation show and hide, positioning it over the object inthe viewer.
         const Tooltip = function( text = '', object, attrs = {} ) {
             const toolt   = document.createElement('div'); toolt.classList.add('pl_tooltip'); toolt.id = 'pl_tooltip-'+object.name;
+            if (attrs.class) toolt.classList.add(attrs.class);
             const inner     = document.createElement('div'); inner.classList.add('pl_tooltip__inner'); toolt.append(inner);
-            inner.textContent = text;
+            inner.innerHTML = text.replace('\n', '<br/>');
             self.el.append(toolt);
             this.el = toolt;
             this.object = object;
@@ -676,7 +687,8 @@ const PANOLENS = window.PANOLENS;
                 var width = container.offsetWidth, height = container.offsetHeight;
                 var widthHalf = width / 2, heightHalf = height / 2;
                 const posMouse = self.getMouse3DPosition();
-                if (typeof posMouse !== 'object' && posMouse.length < 3) return;
+                const t = typeof posMouse;
+                if (t === 'undefined' || (t !== 'object' && posMouse.length < 3 )) return;
                 var pos = new THREE.Vector3(...posMouse);
                 // var pos = object.position.clone();
                 pos.project(self.viewer.camera);
@@ -696,7 +708,7 @@ const PANOLENS = window.PANOLENS;
     }
 
     Element.prototype.posterlens = function(options) {
-        console.log('DATA:', options);
+        console.log('CALLED posterlens with DATA:', options);
         const instance = new Posterlens(this).init(options);
         return instance;
     };
@@ -744,7 +756,9 @@ const CanvasForTexture = function(text = '', attrs = {}) {
 
         // console.log('COOOLOR,🖍',params.color);
         // alert(params.name+'na'+params.color+'me:'+textcolor)
-        contextParams = { font: params.fontWeight+' '+params.size+"px "+params.fontFamily }
+        contextParams = { 
+            font: params.fontWeight+' '+params.size+"px "+params.fontFamily
+        }
         
         // create a canvas element, just to calculate the lines and therefore the height.
         var canvasDummy = document.createElement('canvas');
@@ -757,17 +771,16 @@ const CanvasForTexture = function(text = '', attrs = {}) {
         // recreate it again so we can asign the lines 1 by one and the height from scratch
         var canvas1 = document.createElement('canvas');
         canvas1.width = params.width;
+        //canvas1.width = params.paddingRight = '10px';
         canvas1.height = params.height;
         canvas1.style.display = 'none';
     
         context1 = canvas1.getContext('2d');
         context1 = Object.assign(context1, contextParams);
-        context1.fillStyle = params.background;
+        //context1.textAlign = 'center';
+        context1.fillStyle = params.background; // this has no effect, we need to create the Rect
         context1.fillRect(0, 0, params.width, params.height );
-        // for debugging: 
-        // canvas1.classList.add('demo-canvas');
-        // canvas1.addEventListener('click', (e) => canvas1.remove());
-        // document.body.prepend(canvas1);
+        
         // write line by line
         context1.fillStyle = params.color;
         for (var i = 0; i<lines.length; i++) {
@@ -778,7 +791,9 @@ const CanvasForTexture = function(text = '', attrs = {}) {
         }
 
         // debug
-        //document.body.appendChild(canvas1);
+        // for debugging: 
+        // canvas1.classList.add('demo-canvas');
+        // document.body.appendChild(canvas1);
         canvas1.remove();
         return canvas1;
     }
